@@ -212,7 +212,19 @@ const translations = {
   // ── My Overall ────────────────────────────────────────────────────────
   my_overall:       { pt: 'Meu Overall',  en: 'My Overall',  es: 'Mi Overall',   fr: 'Mon Overall'  },
   overall_set:      { pt: 'Definir',      en: 'Set',         es: 'Definir',      fr: 'Définir'      },
-  overall_edit:     { pt: 'Editar overall', en: 'Edit overall', es: 'Editar overall', fr: 'Modifier l\'overall' },
+  overall_edit:     { pt: 'Editar overall', en: 'Edit overall', es: 'Editar overall', fr: "Modifier l'overall" },
+
+  // ── Weekend League ────────────────────────────────────────────────────
+  wl_title:         { pt: 'Weekend League',             en: 'Weekend League',          es: 'Weekend League',          fr: 'Weekend League'             },
+  nav_wl:           { pt: 'WL',                         en: 'WL',                      es: 'WL',                      fr: 'WL'                         },
+  wl_start:         { pt: 'Iniciar Weekend League',     en: 'Start Weekend League',    es: 'Iniciar Weekend League',  fr: 'Lancer la Weekend League'   },
+  wl_end:           { pt: 'Encerrar WL',                en: 'End WL',                  es: 'Cerrar WL',               fr: 'Terminer WL'                },
+  wl_active:        { pt: 'Ativa',                      en: 'Active',                  es: 'Activa',                  fr: 'Active'                     },
+  wl_no_active:     { pt: 'Nenhuma WL em andamento',   en: 'No active WL',            es: 'Ninguna WL activa',       fr: 'Aucune WL en cours'         },
+  wl_end_confirm:   { pt: 'Encerrar a WL atual?',       en: 'End the current WL?',     es: '¿Cerrar la WL actual?',   fr: 'Terminer la WL en cours ?'  },
+  wl_history:       { pt: 'Histórico de WLs',           en: 'WL History',              es: 'Historial WL',            fr: 'Historique WL'              },
+  wl_active_wl:     { pt: 'WL Ativa',                   en: 'Active WL',               es: 'WL Activa',               fr: 'WL Active'                  },
+  wl_no_wl_warning: { pt: 'Inicie uma WL para registrar partidas automaticamente.', en: 'Start a WL to track matches automatically.', es: 'Inicia una WL para registrar partidos automáticamente.', fr: 'Lance une WL pour enregistrer les matchs automatiquement.' },
 } as const;
 
 type TranslationKey = keyof typeof translations;
@@ -231,4 +243,5 @@ export function tDays(lang: Language): readonly string[] {
 }
 
 export const STORAGE_KEY = 'futchamps_lang';
-export const OVERALL_KEY = 'futchamps_overall';
+export const OVERALL_KEY  = 'futchamps_overall';
+export const ACTIVE_WL_KEY = 'futchamps_active_wl';

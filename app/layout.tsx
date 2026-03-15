@@ -33,7 +33,7 @@ export default function RootLayout({
         <LanguageProvider>
           <AuthProvider>
             <Header />
-            <main className="pb-24 px-4 pt-4 max-w-lg mx-auto">{children}</main>
+            <main className="pb-28 px-4 pt-4 max-w-2xl mx-auto lg:pb-8 lg:pt-8 lg:px-8">{children}</main>
             <BottomNav />
           </AuthProvider>
         </LanguageProvider>

@@ -31,7 +31,8 @@ export default function Header() {
   const displayName = user?.email?.split('@')[0] ?? '';
 
   return (
-    <header className="sticky top-0 z-10 bg-[#121212] border-b border-[#333333] px-4 py-2.5 flex items-center justify-between">
+    <header className="sticky top-0 z-10 bg-[#121212] border-b border-[#333333] px-4 py-2.5">
+    <div className="max-w-2xl mx-auto lg:px-4 flex items-center justify-between">
       <h1 className="text-base font-bold tracking-tight">
         FUT <span className="text-white">TRACKER</span>
       </h1>
@@ -73,6 +74,7 @@ export default function Header() {
           <span className="text-xs text-gray-500 font-medium">FC 26</span>
         )}
       </div>
+    </div>
     </header>
   );
 }

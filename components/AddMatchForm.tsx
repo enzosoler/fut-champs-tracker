@@ -10,7 +10,7 @@ import { SquadPlayer, FORMATIONS, MatchEndType } from '@/types';
 import { calcAutoDifficulty, getDifficultyLabel, DifficultyInput } from '@/lib/autodifficulty';
 import { calcEloChange, getEloTier } from '@/lib/elo';
 import { useLanguage } from '@/components/LanguageProvider';
-import { t } from '@/lib/i18n';
+import { t, ACTIVE_WL_KEY } from '@/lib/i18n';
 
 interface PlayerEntry {
   player: SquadPlayer;
@@ -31,7 +31,8 @@ export default function AddMatchForm() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [currentElo, setCurrentElo] = useState<number>(1000);
 
-  const [weekId, setWeekId] = useState('');
+  const [weekId,    setWeekId]    = useState('');
+  const [activeWl,  setActiveWl]  = useState<string | null>(null);
   const [matchNum, setMatchNum] = useState(1);
   const [ha, setHa] = useState<'Home' | 'Away'>('Home');
   const [goalsMe, setGoalsMe] = useState(0);
@@ -52,11 +53,20 @@ export default function AddMatchForm() {
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
+    // Load active WL from localStorage
+    try {
+      const wl = localStorage.getItem(ACTIVE_WL_KEY);
+      if (wl) { setActiveWl(wl); setWeekId(wl); }
+    } catch {}
+
     supabase.from('squad').select('*').eq('is_active', true).order('position').order('name')
       .then(({ data }) => { if (data) setSquad(data as SquadPlayer[]); });
-    supabase.from('matches').select('elo_after').order('created_at', { ascending: false }).limit(1)
+    supabase.from('matches').select('elo_after, week_id').order('created_at', { ascending: false }).limit(1)
       .then(({ data }) => {
-        if (data && data.length > 0 && data[0].elo_after) setCurrentElo(data[0].elo_after);
+        if (data && data.length > 0) {
+          if (data[0].elo_after) setCurrentElo(data[0].elo_after);
+          // Count matches in current WL to set match number
+        }
       });
   }, []);
 
@@ -106,7 +116,8 @@ export default function AddMatchForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!weekId.trim()) { setError(t('fill_week_id', lang)); return; }
+    const effectiveWeekId = activeWl ?? weekId.trim();
+    if (!effectiveWeekId) { setError(t('fill_week_id', lang)); return; }
     setSaving(true);
     setError(null);
     const { data: { user } } = await supabase.auth.getUser();
@@ -117,7 +128,7 @@ export default function AddMatchForm() {
     const legacyDifficulty = autoDiff <= 2.5 ? 'Easy' : autoDiff <= 5.0 ? 'Medium' : autoDiff <= 7.5 ? 'Hard' : 'Sweaty';
 
     const { data: matchData, error: matchError } = await supabase.from('matches').insert({
-      user_id: user.id, week_id: weekId.trim(), match_num: matchNum, ha,
+      user_id: user.id, week_id: effectiveWeekId, match_num: matchNum, ha,
       goals_me: goalsMe, goals_opp: goalsOpp,
       pk_me: pkMe !== '' ? parseInt(pkMe) : null, pk_opp: pkOpp !== '' ? parseInt(pkOpp) : null,
       xg_me: xgMe !== '' ? parseFloat(xgMe) : null, xg_opp: xgOpp !== '' ? parseFloat(xgOpp) : null,
@@ -166,9 +177,17 @@ export default function AddMatchForm() {
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
             <label className="text-xs text-gray-400 uppercase tracking-wider">{t('week_id', lang)}</label>
-            <input type="text" value={weekId} onChange={e => setWeekId(e.target.value)}
-              placeholder={t('week_id_hint', lang)}
-              className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-white placeholder:text-gray-600" required />
+            {activeWl ? (
+              <div className="w-full bg-[#1a1a1a] border border-[#FFB800]/40 rounded-xl px-4 py-2.5 text-sm flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
+                <span className="text-[#FFB800] font-semibold">{activeWl}</span>
+                <span className="text-gray-500 text-xs ml-auto">{t('wl_active', lang)}</span>
+              </div>
+            ) : (
+              <input type="text" value={weekId} onChange={e => setWeekId(e.target.value)}
+                placeholder={t('week_id_hint', lang)}
+                className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-white placeholder:text-gray-600" required />
+            )}
           </div>
           <div className="space-y-1">
             <label className="text-xs text-gray-400 uppercase tracking-wider">{t('match_num', lang)}</label>
