@@ -9,9 +9,12 @@ import {
   getMatchResult, RANK_THRESHOLDS, MatchResult, WLSession
 } from '@/types';
 import { getEloTier } from '@/lib/elo';
+import { useLanguage } from '@/components/LanguageProvider';
+import { t } from '@/lib/i18n';
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { lang } = useLanguage();
   const [matches,     setMatches]     = useState<MatchWithPlayers[]>([]);
   const [leaderboard, setLeaderboard] = useState<PlayerLeaderboard[]>([]);
   const [wlSessions,  setWlSessions]  = useState<WLSession[]>([]);
@@ -21,19 +24,9 @@ export default function DashboardPage() {
     async function load() {
       setLoading(true);
       const [matchRes, lbRes, wlRes] = await Promise.all([
-        supabase
-          .from('matches')
-          .select('*, match_players(*, squad(*))')
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('player_leaderboard')
-          .select('*')
-          .order('total_goals', { ascending: false }),
-        supabase
-          .from('wl_sessions')
-          .select('*')
-          .order('week_id', { ascending: false })
-          .limit(5),
+        supabase.from('matches').select('*, match_players(*, squad(*))').order('created_at', { ascending: false }),
+        supabase.from('player_leaderboard').select('*').order('total_goals', { ascending: false }),
+        supabase.from('wl_sessions').select('*').order('week_id', { ascending: false }).limit(5),
       ]);
       if (matchRes.data)  setMatches(matchRes.data as MatchWithPlayers[]);
       if (lbRes.data)     setLeaderboard(lbRes.data as PlayerLeaderboard[]);
@@ -43,7 +36,6 @@ export default function DashboardPage() {
     load();
   }, []);
 
-  // ─── Derived stats (all time) ─────────────────────────────────────────
   const totalMatches   = matches.length;
   const wins           = matches.filter(m => getMatchResult(m) === 'W').length;
   const draws          = matches.filter(m => getMatchResult(m) === 'D').length;
@@ -52,21 +44,17 @@ export default function DashboardPage() {
   const totalGoalsFor  = matches.reduce((s, m) => s + m.goals_me,  0);
   const totalGoalsAg   = matches.reduce((s, m) => s + m.goals_opp, 0);
 
-  // ─── Win streak ───────────────────────────────────────────────────────
   let currentStreak = 0;
   for (const m of matches) {
     if (getMatchResult(m) === 'W') currentStreak++;
     else break;
   }
 
-  // ─── Last 5 form ──────────────────────────────────────────────────────
   const last5: MatchResult[] = matches.slice(0, 5).map(m => getMatchResult(m));
 
-  // ─── ELO ─────────────────────────────────────────────────────────────
   const currentElo = matches.find(m => m.elo_after != null)?.elo_after ?? 1000;
-  const { tier: eloTier, color: eloColor } = getEloTier(currentElo);
+  const { tierKey: eloTierKey, color: eloColor } = getEloTier(currentElo);
 
-  // ─── Current week rank calculator ─────────────────────────────────────
   const currentWeekId  = matches.length > 0 ? matches[0].week_id : null;
   const weekMatches    = currentWeekId ? matches.filter(m => m.week_id === currentWeekId) : [];
   const weekWins       = weekMatches.filter(m => getMatchResult(m) === 'W').length;
@@ -75,7 +63,6 @@ export default function DashboardPage() {
   const nextRank       = RANK_THRESHOLDS.find(r => r.wins > weekWins);
   const winsNeeded     = nextRank ? Math.max(0, nextRank.wins - weekWins) : 0;
 
-  // ─── Avg auto-difficulty of recent matches ───────────────────────────
   const diffMatches = matches.slice(0, 10).filter(m => m.auto_difficulty != null);
   const avgDiff = diffMatches.length > 0
     ? (diffMatches.reduce((s, m) => s + (m.auto_difficulty ?? 0), 0) / diffMatches.length).toFixed(1)
@@ -86,17 +73,15 @@ export default function DashboardPage() {
     const topScorer = leaderboard[0];
     const lines = [
       `⚽ FUT Champions — ${currentWeekId}`,
-      `📊 ${weekPlayed}/15 jogos | ${weekWins}V`,
-      nextRank ? `🎯 Faltam ${winsNeeded}V para ${nextRank.rank}` : '✅ Meta atingida!',
-      `⚡ Dificuldade média: ${avgDiff ?? '—'}`,
-      topScorer ? `🥇 Artilheiro: ${topScorer.player_name} (${topScorer.total_goals}⚽)` : '',
+      `📊 ${weekPlayed}/15 ${t('matches', lang)} | ${weekWins}W`,
+      nextRank ? `🎯 ${winsNeeded}W → ${nextRank.rank}` : '✅',
+      avgDiff ? `⚡ ${t('avg_diff', lang)}: ${avgDiff}` : '',
+      topScorer ? `🥇 ${topScorer.player_name} (${topScorer.total_goals}⚽)` : '',
     ].filter(Boolean).join('\n');
-
-    if (navigator.share) {
-      navigator.share({ text: lines });
-    } else {
+    if (navigator.share) navigator.share({ text: lines });
+    else {
       navigator.clipboard.writeText(lines);
-      alert('Resumo copiado!');
+      alert('Copied!');
     }
   }
 
@@ -106,39 +91,36 @@ export default function DashboardPage() {
     L: 'bg-red-500 text-white',
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center">
-        <Loader2 className="animate-spin text-white" size={36} />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center">
+      <Loader2 className="animate-spin text-white" size={36} />
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#0d0d0d] text-white p-4 md:p-8">
       <div className="max-w-2xl mx-auto space-y-6">
 
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-black">Dashboard</h1>
             {currentWeekId && (
-              <p className="text-sm text-gray-400">Semana: <span className="text-white font-semibold">{currentWeekId}</span></p>
+              <p className="text-sm text-gray-400">{t('week', lang)}: <span className="text-white font-semibold">{currentWeekId}</span></p>
             )}
           </div>
           <button onClick={() => router.push('/add-match')}
             className="flex items-center gap-2 bg-[#FFB800] text-black font-bold px-4 py-2.5 rounded-xl hover:bg-[#CC9400] transition text-sm">
-            <Plus size={16} /> Registrar
+            <Plus size={16} /> {t('nav_register', lang)}
           </button>
         </div>
 
         {totalMatches === 0 ? (
           <div className="text-center py-20 text-gray-500 space-y-4">
             <Trophy size={48} className="mx-auto opacity-20" />
-            <p className="text-lg">Nenhuma partida registrada ainda.</p>
+            <p className="text-lg">{t('no_data', lang)}</p>
             <button onClick={() => router.push('/add-match')}
               className="bg-[#FFB800] text-black font-bold px-6 py-3 rounded-xl hover:bg-[#CC9400] transition">
-              Registrar Primeira Partida
+              {t('register_first', lang)}
             </button>
           </div>
         ) : (
@@ -147,15 +129,15 @@ export default function DashboardPage() {
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 text-center">
                 <p className="text-3xl font-black text-green-400">{wins}</p>
-                <p className="text-xs text-gray-400 mt-1">Vitórias</p>
+                <p className="text-xs text-gray-400 mt-1">{t('wins', lang)}</p>
               </div>
               <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 text-center">
                 <p className="text-3xl font-black text-red-400">{losses}</p>
-                <p className="text-xs text-gray-400 mt-1">Derrotas</p>
+                <p className="text-xs text-gray-400 mt-1">{t('losses', lang)}</p>
               </div>
               <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 text-center">
                 <p className="text-3xl font-black text-white">{winRate}%</p>
-                <p className="text-xs text-gray-400 mt-1">Win Rate</p>
+                <p className="text-xs text-gray-400 mt-1">{t('win_rate', lang)}</p>
               </div>
             </div>
 
@@ -163,28 +145,28 @@ export default function DashboardPage() {
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 text-center">
                 <p className="text-2xl font-black text-white">{totalGoalsFor}</p>
-                <p className="text-[10px] text-gray-500 mt-0.5">Gols Pro</p>
+                <p className="text-[10px] text-gray-500 mt-0.5">{t('goals_scored', lang)}</p>
                 <p className="text-xl font-black text-red-400 mt-1">{totalGoalsAg}</p>
-                <p className="text-[10px] text-gray-500">Gols Contra</p>
+                <p className="text-[10px] text-gray-500">{t('goals_conceded', lang)}</p>
               </div>
               <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 text-center">
                 {currentStreak > 0 ? (
                   <>
                     <p className="text-3xl font-black text-[#FFB800]">🔥{currentStreak}</p>
-                    <p className="text-xs text-gray-400 mt-1">Win Streak</p>
+                    <p className="text-xs text-gray-400 mt-1">{t('win_streak', lang)}</p>
                   </>
                 ) : (
                   <>
                     <p className="text-3xl font-black text-gray-500">—</p>
-                    <p className="text-xs text-gray-400 mt-1">Sem Streak</p>
+                    <p className="text-xs text-gray-400 mt-1">{t('no_streak', lang)}</p>
                   </>
                 )}
               </div>
               <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 text-center">
                 <p className={`text-2xl font-black ${eloColor}`}>{currentElo}</p>
-                <p className={`text-xs mt-1 ${eloColor}`}>{eloTier}</p>
+                <p className={`text-xs mt-1 ${eloColor}`}>{t(eloTierKey as Parameters<typeof t>[0], lang)}</p>
                 {avgDiff && (
-                  <p className="text-[10px] text-gray-500 mt-1">avg diff {avgDiff}</p>
+                  <p className="text-[10px] text-gray-500 mt-1">{t('avg_diff', lang)} {avgDiff}</p>
                 )}
               </div>
             </div>
@@ -193,7 +175,7 @@ export default function DashboardPage() {
             <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <Flame className="text-orange-400" size={16} />
-                <span className="text-sm font-semibold text-gray-300">Últimas 5 Partidas</span>
+                <span className="text-sm font-semibold text-gray-300">{t('last_5', lang)}</span>
               </div>
               <div className="flex gap-2">
                 {last5.map((r, i) => (
@@ -215,8 +197,8 @@ export default function DashboardPage() {
             <div className="bg-[#1a1a1a] border border-white/20 rounded-2xl p-5 space-y-3">
               <div className="flex items-center gap-2">
                 <Target className="text-white" size={16} />
-                <span className="text-sm font-semibold text-gray-300">Calculadora de Rank</span>
-                <span className="ml-auto text-xs text-gray-500">{weekPlayed}/15 jogos</span>
+                <span className="text-sm font-semibold text-gray-300">{t('rank_calc', lang)}</span>
+                <span className="ml-auto text-xs text-gray-500">{weekPlayed}/15 {t('matches', lang)}</span>
               </div>
               <div className="w-full bg-[#262626] rounded-full h-3">
                 <div className="bg-[#FFB800] h-3 rounded-full transition-all"
@@ -236,24 +218,27 @@ export default function DashboardPage() {
               {nextRank ? (
                 <p className="text-sm text-center">
                   <span className="text-white font-bold">{winsNeeded}</span>
-                  <span className="text-gray-400"> vitórias em </span>
+                  <span className="text-gray-400"> W / </span>
                   <span className="text-white font-bold">{weekRemaining}</span>
-                  <span className="text-gray-400"> jogos para </span>
+                  <span className="text-gray-400"> {t('matches', lang)} → </span>
                   <span className="text-white font-bold">{nextRank.rank}</span>
                 </p>
               ) : (
-                <p className="text-sm text-center text-white font-bold">🏆 Meta máxima atingida!</p>
+                <p className="text-sm text-center text-white font-bold">🏆</p>
               )}
             </div>
 
-            {/* WL Archive (last 5 sessions) */}
+            {/* WL Archive */}
             {wlSessions.length > 1 && (
               <div className="space-y-3">
-                <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Arquivo WL</h2>
+                <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">{t('wl_archive', lang)}</h2>
                 <div className="space-y-2">
-                  {wlSessions.map((s, i) => {
+                  {wlSessions.map((s) => {
                     const isCurrentWeek = s.week_id === currentWeekId;
                     const pct = s.total_matches > 0 ? Math.round((s.wins / s.total_matches) * 100) : 0;
+                    const wL = t('wins', lang).charAt(0);
+                    const dL = t('draws', lang).charAt(0);
+                    const lL = t('losses', lang).charAt(0);
                     return (
                       <div key={s.week_id}
                         className={`bg-[#1a1a1a] border rounded-xl px-4 py-3 flex items-center gap-3 ${
@@ -264,13 +249,17 @@ export default function DashboardPage() {
                             <span className={`text-sm font-bold ${isCurrentWeek ? 'text-[#FFB800]' : 'text-white'}`}>
                               {s.week_id}
                             </span>
-                            {isCurrentWeek && <span className="text-[10px] text-[#FFB800] border border-[#FFB800]/30 rounded px-1">Atual</span>}
+                            {isCurrentWeek && (
+                              <span className="text-[10px] text-[#FFB800] border border-[#FFB800]/30 rounded px-1">
+                                {t('current_label', lang)}
+                              </span>
+                            )}
                           </div>
                           <div className="flex gap-2 mt-0.5 text-xs text-gray-500">
-                            <span>{s.total_matches}/15 jogos</span>
-                            <span className="text-green-400">{s.wins}V</span>
-                            <span className="text-yellow-400">{s.draws}E</span>
-                            <span className="text-red-400">{s.losses}D</span>
+                            <span>{s.total_matches}/15</span>
+                            <span className="text-green-400">{s.wins}{wL}</span>
+                            <span className="text-yellow-400">{s.draws}{dL}</span>
+                            <span className="text-red-400">{s.losses}{lL}</span>
                           </div>
                         </div>
                         <div className="text-right">
@@ -278,7 +267,7 @@ export default function DashboardPage() {
                             {pct}%
                           </p>
                           {s.avg_difficulty && (
-                            <p className="text-[10px] text-gray-500">diff {Number(s.avg_difficulty).toFixed(1)}</p>
+                            <p className="text-[10px] text-gray-500">{Number(s.avg_difficulty).toFixed(1)}⚡</p>
                           )}
                         </div>
                       </div>
@@ -293,7 +282,7 @@ export default function DashboardPage() {
               <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-5 space-y-3">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="text-white" size={16} />
-                  <span className="text-sm font-semibold text-gray-300">Destaques do Elenco</span>
+                  <span className="text-sm font-semibold text-gray-300">{t('squad_highlights', lang)}</span>
                 </div>
                 <div className="space-y-2">
                   {leaderboard.slice(0, 5).map((p, i) => (
@@ -318,7 +307,7 @@ export default function DashboardPage() {
 
             {/* Recent matches */}
             <div className="space-y-3">
-              <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Partidas Recentes</h2>
+              <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">{t('recent_matches', lang)}</h2>
               {matches.slice(0, 5).map(match => {
                 const result = getMatchResult(match);
                 return (
@@ -362,14 +351,14 @@ export default function DashboardPage() {
               })}
               <button onClick={() => router.push('/history')}
                 className="w-full py-2.5 border border-white/10 rounded-xl text-sm text-gray-400 hover:border-white/20 hover:text-white transition">
-                Ver histórico completo →
+                {t('history_title', lang)} →
               </button>
             </div>
 
             {/* Share */}
             <button onClick={handleShare}
               className="w-full flex items-center justify-center gap-2 border border-white/30 rounded-xl py-3 text-white text-sm font-semibold hover:bg-white/5 transition">
-              <Share2 size={16} /> Compartilhar Resumo da Semana
+              <Share2 size={16} /> {t('share_week', lang)}
             </button>
           </>
         )}

@@ -6,54 +6,47 @@ import { Match, getMatchResult } from '@/types';
 import { Loader2, BarChart2, Target, Clock, Swords } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, LineChart, Line, Cell, ScatterChart, Scatter, Legend
+  ResponsiveContainer, LineChart, Line, Cell, Legend
 } from 'recharts';
+import { useLanguage } from '@/components/LanguageProvider';
+import { t, tDays } from '@/lib/i18n';
 
 export default function AnalyticsPage() {
+  const { lang } = useLanguage();
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase
-      .from('matches')
-      .select('*')
-      .order('created_at', { ascending: true })
-      .then(({ data }) => {
-        if (data) setMatches(data as Match[]);
-        setLoading(false);
-      });
+    supabase.from('matches').select('*').order('created_at', { ascending: true })
+      .then(({ data }) => { if (data) setMatches(data as Match[]); setLoading(false); });
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center">
-        <Loader2 className="animate-spin text-white" size={36} />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center">
+      <Loader2 className="animate-spin text-white" size={36} />
+    </div>
+  );
 
-  if (matches.length === 0) {
-    return (
-      <div className="min-h-screen bg-[#0d0d0d] text-white p-4 flex flex-col items-center justify-center gap-4">
-        <BarChart2 size={48} className="opacity-20" />
-        <p className="text-gray-500">Registre partidas para ver análises aqui.</p>
-      </div>
-    );
-  }
+  if (matches.length === 0) return (
+    <div className="min-h-screen bg-[#0d0d0d] text-white p-4 flex flex-col items-center justify-center gap-4">
+      <BarChart2 size={48} className="opacity-20" />
+      <p className="text-gray-500">{t('no_data', lang)}</p>
+    </div>
+  );
 
-  // ─── 1. XG vs Actual Goals ───────────────────────────────────────────
+  // ─── 1. XG vs Actual Goals ────────────────────────────────────────────
   const xgData = matches
     .filter(m => m.xg_me !== null && m.xg_opp !== null)
     .map((m, i) => ({
-      name: `#${i + 1}`,
-      'xG Meu':      m.xg_me,
-      'xG Opp':      m.xg_opp,
-      'Gols Meus':   m.goals_me,
-      'Gols Opp':    m.goals_opp,
+      name:    `#${i + 1}`,
+      xgMe:    m.xg_me,
+      xgOpp:   m.xg_opp,
+      goalsMe:  m.goals_me,
+      goalsOpp: m.goals_opp,
     }));
 
   // ─── 2. Win rate by day of week ───────────────────────────────────────
-  const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const dayNames = tDays(lang);
   const dayStats: Record<number, { wins: number; total: number }> = {};
   for (let i = 0; i < 7; i++) dayStats[i] = { wins: 0, total: 0 };
   matches.forEach(m => {
@@ -67,10 +60,10 @@ export default function AnalyticsPage() {
     total:   dayStats[i].total,
   }));
 
-  // ─── 3. Formation kryptonite ─────────────────────────────────────────
+  // ─── 3. Formation kryptonite ──────────────────────────────────────────
   const formMap: Record<string, { wins: number; losses: number; draws: number }> = {};
   matches.forEach(m => {
-    const f = m.formation_opp || 'Desconhecida';
+    const f = m.formation_opp || '?';
     if (!formMap[f]) formMap[f] = { wins: 0, losses: 0, draws: 0 };
     const r = getMatchResult(m);
     if (r === 'W') formMap[f].wins++;
@@ -79,47 +72,39 @@ export default function AnalyticsPage() {
   });
   const formData = Object.entries(formMap)
     .map(([name, s]) => ({
-      name,
-      total: s.wins + s.losses + s.draws,
-      winRate: s.wins + s.losses + s.draws > 0
-        ? Math.round((s.wins / (s.wins + s.losses + s.draws)) * 100) : 0,
+      name, total: s.wins + s.losses + s.draws,
+      winRate: s.wins + s.losses + s.draws > 0 ? Math.round((s.wins / (s.wins + s.losses + s.draws)) * 100) : 0,
       wins: s.wins, losses: s.losses, draws: s.draws,
     }))
     .filter(f => f.total >= 2)
     .sort((a, b) => a.winRate - b.winRate);
+  const kryptonite = formData[0];
 
-  const kryptonite = formData[0]; // lowest win rate formation
+  // ─── 4. ELO progression ───────────────────────────────────────────────
+  const eloData = matches.filter(m => m.elo_after !== null).map((m, i) => ({ name: `#${i + 1}`, elo: m.elo_after }));
 
-  // ─── 4. ELO progression ──────────────────────────────────────────────
-  const eloData = matches
-    .filter(m => m.elo_after !== null)
-    .map((m, i) => ({
-      name: `#${i + 1}`,
-      elo: m.elo_after,
-    }));
-
-  // ─── 5. Clutch stats (close games = margin of 1 goal or penalties) ───
-  const closeMatches = matches.filter(m =>
-    Math.abs(m.goals_me - m.goals_opp) <= 1 || m.pk_me !== null
-  );
+  // ─── 5. Clutch stats ──────────────────────────────────────────────────
+  const closeMatches = matches.filter(m => Math.abs(m.goals_me - m.goals_opp) <= 1 || m.pk_me !== null);
   const clutchW = closeMatches.filter(m => getMatchResult(m) === 'W').length;
   const clutchL = closeMatches.filter(m => getMatchResult(m) === 'L').length;
   const clutchD = closeMatches.filter(m => getMatchResult(m) === 'D').length;
   const clutchTotal = closeMatches.length;
 
-  // ─── 6. Goals per game trend (rolling 5-game avg) ────────────────────
+  // ─── 6. Goals rolling avg ─────────────────────────────────────────────
+  const avgScoredKey   = t('avg_scored_chart', lang);
+  const avgConcededKey = t('avg_conceded_chart', lang);
   const trendData = matches.map((m, i) => {
     const window = matches.slice(Math.max(0, i - 4), i + 1);
     const avgFor  = window.reduce((s, x) => s + x.goals_me,  0) / window.length;
     const avgAg   = window.reduce((s, x) => s + x.goals_opp, 0) / window.length;
     return {
-      name:     `#${i + 1}`,
-      'Média Marcados':  parseFloat(avgFor.toFixed(2)),
-      'Média Sofridos':  parseFloat(avgAg.toFixed(2)),
+      name: `#${i + 1}`,
+      [avgScoredKey]:   parseFloat(avgFor.toFixed(2)),
+      [avgConcededKey]: parseFloat(avgAg.toFixed(2)),
     };
   });
 
-  // ─── 7. Difficulty distribution ──────────────────────────────────────
+  // ─── 7. Difficulty distribution ───────────────────────────────────────
   const diffBuckets = [
     { label: '1–2', range: [1, 2.9],  wins: 0, total: 0 },
     { label: '3–4', range: [3, 4.9],  wins: 0, total: 0 },
@@ -142,7 +127,6 @@ export default function AnalyticsPage() {
 
   const GOLD  = '#FFB800';
   const RED   = '#ef4444';
-  const GRAY  = '#6b7280';
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
@@ -161,36 +145,36 @@ export default function AnalyticsPage() {
       <div className="max-w-2xl mx-auto space-y-8">
 
         <div>
-          <h1 className="text-2xl font-black">Análises</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Insights baseados em {matches.length} partidas</p>
+          <h1 className="text-2xl font-black">{t('analytics_title', lang)}</h1>
+          <p className="text-sm text-gray-400 mt-0.5">{t('insights', lang)} {matches.length} {t('matches', lang)}</p>
         </div>
 
         {/* ── Clutch stats ── */}
         <section className="space-y-3">
           <div className="flex items-center gap-2">
             <Swords size={16} className="text-[#FFB800]" />
-            <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">Clutch (Partidas Disputadas)</h2>
+            <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{t('clutch_title', lang)}</h2>
           </div>
           <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 space-y-3">
-            <p className="text-xs text-gray-500">{clutchTotal} partidas com margem ≤ 1 gol ou nos penaltis</p>
+            <p className="text-xs text-gray-500">{clutchTotal} {t('close_matches', lang)}</p>
             <div className="flex gap-4 text-center">
               <div className="flex-1">
                 <p className="text-2xl font-black text-green-400">{clutchW}</p>
-                <p className="text-xs text-gray-400">Vitorias</p>
+                <p className="text-xs text-gray-400">{t('wins', lang)}</p>
               </div>
               <div className="flex-1">
                 <p className="text-2xl font-black text-yellow-400">{clutchD}</p>
-                <p className="text-xs text-gray-400">Empates</p>
+                <p className="text-xs text-gray-400">{t('draws', lang)}</p>
               </div>
               <div className="flex-1">
                 <p className="text-2xl font-black text-red-400">{clutchL}</p>
-                <p className="text-xs text-gray-400">Derrotas</p>
+                <p className="text-xs text-gray-400">{t('losses', lang)}</p>
               </div>
               <div className="flex-1">
                 <p className="text-2xl font-black text-white">
                   {clutchTotal > 0 ? Math.round((clutchW / clutchTotal) * 100) : 0}%
                 </p>
-                <p className="text-xs text-gray-400">Clutch WR</p>
+                <p className="text-xs text-gray-400">{t('clutch_wr', lang)}</p>
               </div>
             </div>
           </div>
@@ -201,7 +185,7 @@ export default function AnalyticsPage() {
           <section className="space-y-3">
             <div className="flex items-center gap-2">
               <Target size={16} className="text-[#FFB800]" />
-              <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">Evolução do ELO</h2>
+              <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{t('elo_progress', lang)}</h2>
             </div>
             <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4">
               <ResponsiveContainer width="100%" height={180}>
@@ -210,7 +194,7 @@ export default function AnalyticsPage() {
                   <XAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 10 }} />
                   <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} domain={['auto', 'auto']} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Line type="monotone" dataKey="elo" stroke={GOLD} strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="elo" name="ELO" stroke={GOLD} strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -221,7 +205,7 @@ export default function AnalyticsPage() {
         <section className="space-y-3">
           <div className="flex items-center gap-2">
             <Clock size={16} className="text-[#FFB800]" />
-            <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">Win Rate por Dia da Semana</h2>
+            <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{t('wr_by_day', lang)}</h2>
           </div>
           <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4">
             <ResponsiveContainer width="100%" height={180}>
@@ -230,16 +214,13 @@ export default function AnalyticsPage() {
                 <XAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 11 }} />
                 <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} unit="%" domain={[0, 100]} />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="winRate" name="Win Rate %">
+                <Bar dataKey="winRate" name={t('win_rate', lang)}>
                   {dayData.map((entry, i) => (
-                    <Cell key={i}
-                      fill={entry.winRate >= 60 ? '#22c55e' : entry.winRate >= 40 ? GOLD : RED}
-                    />
+                    <Cell key={i} fill={entry.winRate >= 60 ? '#22c55e' : entry.winRate >= 40 ? GOLD : RED} />
                   ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-            {/* Best/worst day */}
             <div className="flex justify-between mt-3 pt-3 border-t border-white/5 text-xs">
               {(() => {
                 const played = dayData.filter(d => d.total > 0);
@@ -248,8 +229,8 @@ export default function AnalyticsPage() {
                 const worst = played.reduce((a, b) => b.winRate < a.winRate ? b : a);
                 return (
                   <>
-                    <span><span className="text-green-400 font-bold">Melhor:</span> <span className="text-white">{best.name} ({best.winRate}%)</span></span>
-                    <span><span className="text-red-400 font-bold">Pior:</span> <span className="text-white">{worst.name} ({worst.winRate}%)</span></span>
+                    <span><span className="text-green-400 font-bold">{t('best_day', lang)}</span> <span className="text-white">{best.name} ({best.winRate}%)</span></span>
+                    <span><span className="text-red-400 font-bold">{t('worst_day', lang)}</span> <span className="text-white">{worst.name} ({worst.winRate}%)</span></span>
                   </>
                 );
               })()}
@@ -262,7 +243,7 @@ export default function AnalyticsPage() {
           <section className="space-y-3">
             <div className="flex items-center gap-2">
               <Swords size={16} className="text-[#FFB800]" />
-              <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">Formação Kryptonite</h2>
+              <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{t('kryptonite', lang)}</h2>
             </div>
             <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 space-y-3">
               {kryptonite && (
@@ -271,8 +252,8 @@ export default function AnalyticsPage() {
                   <div>
                     <p className="font-bold text-red-400">{kryptonite.name}</p>
                     <p className="text-xs text-gray-400">
-                      {kryptonite.wins}V {kryptonite.draws}E {kryptonite.losses}D —{' '}
-                      <span className="text-red-400 font-bold">{kryptonite.winRate}% win rate</span>
+                      {kryptonite.wins}{t('wins', lang).charAt(0)} {kryptonite.draws}{t('draws', lang).charAt(0)} {kryptonite.losses}{t('losses', lang).charAt(0)} —{' '}
+                      <span className="text-red-400 font-bold">{kryptonite.winRate}% {t('win_rate', lang)}</span>
                     </p>
                   </div>
                 </div>
@@ -283,11 +264,9 @@ export default function AnalyticsPage() {
                   <XAxis type="number" tick={{ fill: '#6b7280', fontSize: 10 }} unit="%" domain={[0, 100]} />
                   <YAxis type="category" dataKey="name" tick={{ fill: '#9ca3af', fontSize: 10 }} width={70} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="winRate" name="Win Rate %">
+                  <Bar dataKey="winRate" name={`${t('win_rate', lang)} %`}>
                     {formData.map((entry, i) => (
-                      <Cell key={i}
-                        fill={entry.winRate >= 60 ? '#22c55e' : entry.winRate >= 40 ? GOLD : RED}
-                      />
+                      <Cell key={i} fill={entry.winRate >= 60 ? '#22c55e' : entry.winRate >= 40 ? GOLD : RED} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -301,7 +280,7 @@ export default function AnalyticsPage() {
           <section className="space-y-3">
             <div className="flex items-center gap-2">
               <BarChart2 size={16} className="text-[#FFB800]" />
-              <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">Win Rate por Dificuldade</h2>
+              <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{t('wr_by_diff', lang)}</h2>
             </div>
             <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4">
               <ResponsiveContainer width="100%" height={160}>
@@ -310,11 +289,9 @@ export default function AnalyticsPage() {
                   <XAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 11 }} />
                   <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} unit="%" domain={[0, 100]} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="winRate" name="Win Rate %">
+                  <Bar dataKey="winRate" name={`${t('win_rate', lang)} %`}>
                     {diffData.map((entry, i) => (
-                      <Cell key={i}
-                        fill={entry.winRate >= 60 ? '#22c55e' : entry.winRate >= 40 ? GOLD : RED}
-                      />
+                      <Cell key={i} fill={entry.winRate >= 60 ? '#22c55e' : entry.winRate >= 40 ? GOLD : RED} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -328,10 +305,9 @@ export default function AnalyticsPage() {
           <section className="space-y-3">
             <div className="flex items-center gap-2">
               <Target size={16} className="text-[#FFB800]" />
-              <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">xG vs Gols Reais</h2>
+              <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{t('xg_vs_goals', lang)}</h2>
             </div>
             <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4">
-              <p className="text-xs text-gray-500 mb-3">Últimas {xgData.length} partidas com xG registrado</p>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={xgData.slice(-10)}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
@@ -339,10 +315,10 @@ export default function AnalyticsPage() {
                   <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="xG Meu"    fill="#FFB80060" />
-                  <Bar dataKey="Gols Meus" fill={GOLD} />
-                  <Bar dataKey="xG Opp"    fill="#ef444460" />
-                  <Bar dataKey="Gols Opp"  fill={RED} />
+                  <Bar dataKey="xgMe"    name={t('xg_mine', lang)}   fill="#FFB80060" />
+                  <Bar dataKey="goalsMe" name={t('my_goals', lang)}  fill={GOLD} />
+                  <Bar dataKey="xgOpp"   name={t('xg_opp', lang)}    fill="#ef444460" />
+                  <Bar dataKey="goalsOpp" name={t('opp_goals', lang)} fill={RED} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -354,7 +330,7 @@ export default function AnalyticsPage() {
           <section className="space-y-3">
             <div className="flex items-center gap-2">
               <BarChart2 size={16} className="text-[#FFB800]" />
-              <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">Tendência (Média Móvel 5 jogos)</h2>
+              <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{t('goals_trend', lang)}</h2>
             </div>
             <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4">
               <ResponsiveContainer width="100%" height={180}>
@@ -364,8 +340,8 @@ export default function AnalyticsPage() {
                   <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Line type="monotone" dataKey="Média Marcados" stroke={GOLD} strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="Média Sofridos" stroke={RED}  strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey={avgScoredKey}   stroke={GOLD} strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey={avgConcededKey} stroke={RED}  strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>

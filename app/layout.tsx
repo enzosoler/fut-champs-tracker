@@ -1,11 +1,19 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
+import Header from "@/components/Header";
+import AuthProvider from "@/components/AuthProvider";
+import { LanguageProvider } from "@/components/LanguageProvider";
 
 export const metadata: Metadata = {
-  title: "FUT Champs Tracker FC 26",
+  title: "FUT Champs Tracker · SolerWorks",
   description: "Rastreie seus resultados no FUT Champions do FC 26",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
   themeColor: "#121212",
 };
 
@@ -22,18 +30,13 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="bg-background text-white font-sans min-h-screen">
-        {/* Top bar */}
-        <header className="sticky top-0 z-10 bg-background border-b border-border px-4 py-3 flex items-center justify-between">
-          <h1 className="text-lg font-bold tracking-tight">
-            FUT CHAMPS <span className="text-primary">TRACKER</span>
-          </h1>
-          <span className="text-xs text-gray-500 font-medium">FC 26</span>
-        </header>
-
-        {/* Page content — extra bottom padding for nav */}
-        <main className="pb-24 px-4 pt-4 max-w-lg mx-auto">{children}</main>
-
-        <BottomNav />
+        <LanguageProvider>
+          <AuthProvider>
+            <Header />
+            <main className="pb-24 px-4 pt-4 max-w-lg mx-auto">{children}</main>
+            <BottomNav />
+          </AuthProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

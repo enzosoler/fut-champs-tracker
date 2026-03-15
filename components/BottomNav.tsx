@@ -2,21 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, PlusCircle, History, Users, BarChart2, Swords, Package } from "lucide-react";
-
-const navItems = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard"  },
-  { label: "Registrar", icon: PlusCircle,      href: "/add-match"  },
-  { label: "Histórico", icon: History,         href: "/history"    },
-  { label: "Oponentes", icon: Swords,          href: "/opponents"  },
-  { label: "Análises",  icon: BarChart2,       href: "/analytics"  },
-];
-
-// Extra pages accessible via nav but not in main bar:
-// /squad  /packs
+import { LayoutDashboard, PlusCircle, History, BarChart2, Swords } from "lucide-react";
+import { useLanguage } from "@/components/LanguageProvider";
+import { t } from "@/lib/i18n";
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const { lang } = useLanguage();
+
+  const navItems = [
+    { labelKey: 'nav_dashboard' as const, icon: LayoutDashboard, href: "/dashboard"  },
+    { labelKey: 'nav_register'  as const, icon: PlusCircle,      href: "/add-match"  },
+    { labelKey: 'nav_history'   as const, icon: History,         href: "/history"    },
+    { labelKey: 'nav_opponents' as const, icon: Swords,          href: "/opponents"  },
+    { labelKey: 'nav_analytics' as const, icon: BarChart2,       href: "/analytics"  },
+  ];
+
   if (pathname === "/login") return null;
 
   return (
@@ -26,7 +27,7 @@ export default function BottomNav() {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
             <Link
-              key={item.label}
+              key={item.href}
               href={item.href}
               className={`flex flex-1 flex-col items-center gap-1 py-3 text-[10px] font-medium transition-colors ${
                 isActive ? "text-[#FFB800]" : "text-gray-500 hover:text-gray-300"
@@ -36,7 +37,7 @@ export default function BottomNav() {
                 size={20}
                 strokeWidth={isActive ? 2.5 : 1.8}
               />
-              {item.label}
+              {t(item.labelKey, lang)}
             </Link>
           );
         })}

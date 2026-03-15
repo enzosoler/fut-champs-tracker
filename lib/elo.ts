@@ -78,12 +78,13 @@ export function computeEloHistory(
 /** Get a rank tier name based on ELO */
 export function getEloTier(elo: number): {
   tier: string;
+  tierKey: string;
   color: string;
 } {
-  if (elo >= 1600) return { tier: 'Lendário',   color: 'text-purple-400' };
-  if (elo >= 1400) return { tier: 'Elite',       color: 'text-yellow-400' };
-  if (elo >= 1200) return { tier: 'Ouro',        color: 'text-amber-400'  };
-  if (elo >= 1050) return { tier: 'Prata',       color: 'text-gray-300'   };
-  if (elo >= 900)  return { tier: 'Bronze',      color: 'text-orange-700' };
-  return                  { tier: 'Iniciante',   color: 'text-gray-500'   };
+  if (elo >= 1600) return { tier: 'Lendário',  tierKey: 'elo_tier_6', color: 'text-purple-400' };
+  if (elo >= 1400) return { tier: 'Elite',     tierKey: 'elo_tier_5', color: 'text-yellow-400' };
+  if (elo >= 1200) return { tier: 'Ouro',      tierKey: 'elo_tier_4', color: 'text-amber-400'  };
+  if (elo >= 1050) return { tier: 'Prata',     tierKey: 'elo_tier_3', color: 'text-gray-300'   };
+  if (elo >= 900)  return { tier: 'Bronze',    tierKey: 'elo_tier_2', color: 'text-orange-700' };
+  return                  { tier: 'Iniciante', tierKey: 'elo_tier_1', color: 'text-gray-500'   };
 }
