@@ -1,166 +1,552 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { useForm, SubmitHandler } from "react-hook-form";
-import { useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/Card";
-import { supabase } from "@/lib/supabaseClient";
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
+import { useRouter } from 'next/navigation';
+import {
+  Plus, Minus, Star, Shield, Loader2, ChevronDown, ChevronUp, Zap
+} from 'lucide-react';
+import { SquadPlayer, FORMATIONS, MatchEndType } from '@/types';
+import { calcAutoDifficulty, getDifficultyLabel, DifficultyInput } from '@/lib/autodifficulty';
+import { calcEloChange, getEloTier } from '@/lib/elo';
 
-type FormInputs = {
-  goals_for: number;
-  goals_against: number;
-  notes: string;
-};
+interface PlayerEntry {
+  player: SquadPlayer;
+  goals: number;
+  assists: number;
+  motm: boolean;
+  clean_sheet: boolean;
+  saves: number;
+}
 
 export default function AddMatchForm() {
   const router = useRouter();
-  const [result, setResult] = useState<"W" | "L">("W");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [squad, setSquad] = useState<SquadPlayer[]>([]);
+  const [playerEntries, setPlayerEntries] = useState<PlayerEntry[]>([]);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [currentElo, setCurrentElo] = useState<number>(1000);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<FormInputs>({ defaultValues: { goals_for: 0, goals_against: 0 } });
+  // Form fields
+  const [weekId, setWeekId] = useState('');
+  const [matchNum, setMatchNum] = useState(1);
+  const [ha, setHa] = useState<'Home' | 'Away'>('Home');
+  const [goalsMe, setGoalsMe] = useState(0);
+  const [goalsOpp, setGoalsOpp] = useState(0);
+  const [pkMe, setPkMe] = useState('');
+  const [pkOpp, setPkOpp] = useState('');
+  const [xgMe, setXgMe] = useState('');
+  const [xgOpp, setXgOpp] = useState('');
+  const [formationMe, setFormationMe] = useState('4-3-3');
+  const [formationOpp, setFormationOpp] = useState('4-3-3');
+  const [possessionMe, setPossessionMe] = useState('');
+  const [shotsMe, setShotsMe] = useState('');
+  const [ping, setPing] = useState<'Bom' | 'Médio' | 'Lag'>('Bom');
+  const [matchEndType, setMatchEndType] = useState<MatchEndType>('normal');
+  const [rageQuit, setRageQuit] = useState<'No' | 'Opp' | 'Me'>('No');
+  const [platform, setPlatform] = useState<'PlayStation' | 'Xbox' | 'PC'>('PlayStation');
+  const [gamertag, setGamertag] = useState('');
+  const [notes, setNotes] = useState('');
 
-  const onSubmit: SubmitHandler<FormInputs> = async (data) => {
-    setIsSubmitting(true);
-    setSubmitError("");
+  useEffect(() => {
+    supabase
+      .from('squad')
+      .select('*')
+      .eq('is_active', true)
+      .order('position')
+      .order('name')
+      .then(({ data }) => {
+        if (data) setSquad(data as SquadPlayer[]);
+      });
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    supabase
+      .from('matches')
+      .select('elo_after')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .then(({ data }) => {
+        if (data && data.length > 0 && data[0].elo_after) {
+          setCurrentElo(data[0].elo_after);
+        }
+      });
+  }, []);
 
-    if (!user) {
-      router.push("/login");
+  const diffInput: DifficultyInput = {
+    xg_opp:        xgOpp !== '' ? parseFloat(xgOpp) : null,
+    xg_me:         xgMe  !== '' ? parseFloat(xgMe)  : null,
+    possession_me: possessionMe !== '' ? parseInt(possessionMe) : null,
+    goals_me:      goalsMe,
+    goals_opp:     goalsOpp,
+    pk_me:         pkMe !== '' ? parseInt(pkMe) : null,
+    pk_opp:        pkOpp !== '' ? parseInt(pkOpp) : null,
+    ping,
+    match_end_type: matchEndType,
+    rage_quit:     rageQuit,
+  };
+  const autoDiff  = calcAutoDifficulty(diffInput);
+  const diffLabel = getDifficultyLabel(autoDiff);
+
+  const previewResult =
+    pkMe !== '' && pkOpp !== ''
+      ? parseInt(pkMe) > parseInt(pkOpp) ? 'W' : parseInt(pkMe) < parseInt(pkOpp) ? 'L' : 'D'
+      : goalsMe > goalsOpp ? 'W' : goalsMe < goalsOpp ? 'L' : 'D';
+  const previewEloChange = calcEloChange(previewResult, autoDiff);
+  const { tier: currentTier, color: tierColor }     = getEloTier(currentElo);
+  const { tier: newTier,     color: newTierColor }  = getEloTier(currentElo + previewEloChange);
+
+  function togglePlayer(player: SquadPlayer) {
+    setPlayerEntries(prev => {
+      const exists = prev.find(e => e.player.id === player.id);
+      if (exists) return prev.filter(e => e.player.id !== player.id);
+      return [...prev, { player, goals: 0, assists: 0, motm: false, clean_sheet: false, saves: 0 }];
+    });
+  }
+
+  function updateEntry(playerId: string, field: keyof Omit<PlayerEntry, 'player'>, value: number | boolean) {
+    setPlayerEntries(prev =>
+      prev.map(e => e.player.id === playerId ? { ...e, [field]: value } : e)
+    );
+  }
+
+  function adjustCounter(playerId: string, field: 'goals' | 'assists' | 'saves', delta: number) {
+    setPlayerEntries(prev =>
+      prev.map(e => {
+        if (e.player.id !== playerId) return e;
+        return { ...e, [field]: Math.max(0, (e[field] as number) + delta) };
+      })
+    );
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!weekId.trim()) { setError('Preencha o Week ID (ex: mar15).'); return; }
+    setSaving(true);
+    setError(null);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setError('Sessão expirada. Faça login novamente.'); setSaving(false); return; }
+
+    const eloChange = calcEloChange(previewResult, autoDiff);
+    const eloAfter  = currentElo + eloChange;
+
+    const legacyDifficulty =
+      autoDiff <= 2.5 ? 'Easy' : autoDiff <= 5.0 ? 'Medium' : autoDiff <= 7.5 ? 'Hard' : 'Sweaty';
+
+    const matchPayload = {
+      user_id:         user.id,
+      week_id:         weekId.trim(),
+      match_num:       matchNum,
+      ha,
+      goals_me:        goalsMe,
+      goals_opp:       goalsOpp,
+      pk_me:           pkMe  !== '' ? parseInt(pkMe)       : null,
+      pk_opp:          pkOpp !== '' ? parseInt(pkOpp)      : null,
+      xg_me:           xgMe  !== '' ? parseFloat(xgMe)     : null,
+      xg_opp:          xgOpp !== '' ? parseFloat(xgOpp)    : null,
+      formation_me:    formationMe,
+      formation_opp:   formationOpp,
+      possession_me:   possessionMe !== '' ? parseInt(possessionMe) : null,
+      shots_me:        shotsMe      !== '' ? parseInt(shotsMe)      : null,
+      ping,
+      difficulty:      legacyDifficulty,
+      auto_difficulty: autoDiff,
+      match_end_type:  matchEndType,
+      rage_quit:       rageQuit,
+      platform,
+      gamertag:        gamertag.trim(),
+      notes:           notes.trim() || null,
+      elo_before:      currentElo,
+      elo_after:       eloAfter,
+      elo_change:      eloChange,
+    };
+
+    const { data: matchData, error: matchError } = await supabase
+      .from('matches')
+      .insert(matchPayload)
+      .select()
+      .single();
+
+    if (matchError || !matchData) {
+      setError(matchError?.message || 'Erro ao salvar partida.');
+      setSaving(false);
       return;
     }
 
-    const { error } = await supabase.from("matches").insert([
-      {
-        result,
-        goals_for: Number(data.goals_for),
-        goals_against: Number(data.goals_against),
-        notes: data.notes || null,
-        user_id: user.id,
-      },
-    ]);
-
-    setIsSubmitting(false);
-
-    if (error) {
-      setSubmitError("Erro ao salvar. Tente novamente.");
-    } else {
-      router.push("/dashboard");
+    if (playerEntries.length > 0) {
+      const mpRows = playerEntries.map(e => ({
+        user_id:     user.id,
+        match_id:    matchData.id,
+        player_id:   e.player.id,
+        goals:       e.goals,
+        assists:     e.assists,
+        motm:        e.motm,
+        clean_sheet: e.clean_sheet,
+        saves:       e.saves,
+      }));
+      const { error: mpError } = await supabase.from('match_players').insert(mpRows);
+      if (mpError) { setError(mpError.message); setSaving(false); return; }
     }
+
+    router.push('/dashboard');
+    router.refresh();
+  }
+
+  const pingColor = {
+    Bom:   'border-green-500 text-green-400',
+    Médio: 'border-yellow-500 text-yellow-400',
+    Lag:   'border-red-500 text-red-400',
+  };
+
+  const endTypeConfig: Record<MatchEndType, { label: string; emoji: string; color: string }> = {
+    normal:     { label: 'Normal',      emoji: '⏱',  color: 'border-white text-white'          },
+    extra_time: { label: 'Prorrogação', emoji: '⏰',  color: 'border-blue-400 text-blue-400'    },
+    penalties:  { label: 'Penaltis',    emoji: '🥅',  color: 'border-purple-400 text-purple-400'},
+    abandoned:  { label: 'Abandonada',  emoji: '🚪',  color: 'border-gray-500 text-gray-400'    },
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      {/* Win / Loss buttons */}
-      <div className="grid grid-cols-2 gap-3">
-        <button
-          type="button"
-          onClick={() => setResult("W")}
-          className={`py-8 rounded-2xl text-xl font-bold transition-all active:scale-95 border-2 ${
-            result === "W"
-              ? "bg-win border-win text-white shadow-lg shadow-win/20"
-              : "bg-surface border-win/30 text-win"
-          }`}
-        >
-          ✓ VITÓRIA
-        </button>
-        <button
-          type="button"
-          onClick={() => setResult("L")}
-          className={`py-8 rounded-2xl text-xl font-bold transition-all active:scale-95 border-2 ${
-            result === "L"
-              ? "bg-loss border-loss text-white shadow-lg shadow-loss/20"
-              : "bg-surface border-loss/30 text-loss"
-          }`}
-        >
-          ✗ DERROTA
-        </button>
-      </div>
+    <form onSubmit={handleSubmit} className="min-h-screen bg-[#0d0d0d] text-white p-4 md:p-8">
+      <div className="max-w-2xl mx-auto space-y-6">
 
-      <Card>
-        <CardContent className="pt-5 space-y-4">
-          {/* Score */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-gray-400 uppercase tracking-wider mb-2">
-                Seus Gols
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="30"
-                className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 text-2xl font-bold text-center focus:outline-none focus:border-primary transition-colors"
-                {...register("goals_for", {
-                  required: true,
-                  min: 0,
-                  valueAsNumber: true,
-                })}
-              />
-              {errors.goals_for && (
-                <p className="text-loss text-xs mt-1">Obrigatório</p>
-              )}
+        <h1 className="text-2xl font-bold">Registrar <span className="text-white">Partida</span></h1>
+
+        {/* Week ID + Match Num */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className="text-xs text-gray-400 uppercase tracking-wider">Week ID</label>
+            <input type="text" value={weekId} onChange={e => setWeekId(e.target.value)}
+              placeholder="ex: mar15"
+              className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-white placeholder:text-gray-600"
+              required />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-gray-400 uppercase tracking-wider">Jogo #</label>
+            <select value={matchNum} onChange={e => setMatchNum(Number(e.target.value))}
+              className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-white">
+              {Array.from({ length: 15 }, (_, i) => i + 1).map(n => (
+                <option key={n} value={n}>Jogo {n}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Home / Away */}
+        <div className="space-y-1">
+          <label className="text-xs text-gray-400 uppercase tracking-wider">Casa / Fora</label>
+          <div className="flex gap-3">
+            {(['Home', 'Away'] as const).map(v => (
+              <button key={v} type="button" onClick={() => setHa(v)}
+                className={`flex-1 py-2.5 rounded-xl border font-semibold text-sm transition ${
+                  ha === v ? 'border-white bg-white/10 text-white' : 'border-white/10 text-gray-400 hover:border-white/30'
+                }`}>
+                {v === 'Home' ? '🏠 Home' : '✈️ Away'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Score */}
+        <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-5 space-y-4">
+          <p className="text-xs text-gray-400 uppercase tracking-wider">Placar</p>
+          <div className="flex items-center justify-center gap-6">
+            {[
+              { label: 'Meus Gols', val: goalsMe, set: setGoalsMe, color: 'text-white' },
+              { label: 'Gols Oponente', val: goalsOpp, set: setGoalsOpp, color: 'text-red-400' },
+            ].map(({ label, val, set, color }) => (
+              <div key={label} className="flex flex-col items-center gap-2">
+                <span className="text-xs text-gray-400">{label}</span>
+                <div className="flex items-center gap-3">
+                  <button type="button" onClick={() => set(Math.max(0, val - 1))}
+                    className="w-9 h-9 rounded-full bg-[#262626] flex items-center justify-center hover:bg-[#333]">
+                    <Minus size={14} />
+                  </button>
+                  <span className={`text-4xl font-black w-12 text-center ${color}`}>{val}</span>
+                  <button type="button" onClick={() => set(val + 1)}
+                    className="w-9 h-9 rounded-full bg-[#262626] flex items-center justify-center hover:bg-[#333]">
+                    <Plus size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
+            {[
+              { label: 'Penaltis (Meus)', val: pkMe, set: setPkMe },
+              { label: 'Penaltis (Opp)',  val: pkOpp, set: setPkOpp },
+            ].map(({ label, val, set }) => (
+              <div key={label} className="space-y-1">
+                <label className="text-xs text-gray-500">{label}</label>
+                <input type="number" min="0" value={val} onChange={e => set(e.target.value)}
+                  placeholder="—"
+                  className="w-full bg-[#262626] border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-white placeholder:text-gray-700" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Match end type */}
+        <div className="space-y-2">
+          <label className="text-xs text-gray-400 uppercase tracking-wider">Como terminou?</label>
+          <div className="grid grid-cols-2 gap-2">
+            {(Object.entries(endTypeConfig) as [MatchEndType, typeof endTypeConfig[MatchEndType]][]).map(([key, cfg]) => (
+              <button key={key} type="button" onClick={() => setMatchEndType(key)}
+                className={`py-2 rounded-xl border text-sm font-semibold transition ${
+                  matchEndType === key ? cfg.color + ' bg-white/5' : 'border-white/10 text-gray-500 hover:border-white/20'
+                }`}>
+                {cfg.emoji} {cfg.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Ping */}
+        <div className="space-y-2">
+          <label className="text-xs text-gray-400 uppercase tracking-wider">Ping / Conexão</label>
+          <div className="flex gap-3">
+            {(['Bom', 'Médio', 'Lag'] as const).map(p => (
+              <button key={p} type="button" onClick={() => setPing(p)}
+                className={`flex-1 py-2 rounded-xl border text-sm font-semibold transition ${
+                  ping === p ? pingColor[p] + ' bg-white/5' : 'border-white/10 text-gray-500 hover:border-white/20'
+                }`}>
+                {p === 'Bom' ? '🟢' : p === 'Médio' ? '🟡' : '🔴'} {p}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Rage Quit */}
+        <div className="space-y-2">
+          <label className="text-xs text-gray-400 uppercase tracking-wider">Rage Quit?</label>
+          <div className="flex gap-3">
+            {(['No', 'Opp', 'Me'] as const).map(r => (
+              <button key={r} type="button" onClick={() => setRageQuit(r)}
+                className={`flex-1 py-2 rounded-xl border text-sm font-semibold transition ${
+                  rageQuit === r
+                    ? r === 'No' ? 'border-white text-white bg-white/10'
+                      : r === 'Opp' ? 'border-green-400 text-green-400 bg-green-400/10'
+                      : 'border-red-400 text-red-400 bg-red-400/10'
+                    : 'border-white/10 text-gray-500 hover:border-white/20'
+                }`}>
+                {r === 'No' ? '✅ Não' : r === 'Opp' ? '😤 Oponente' : '😅 Eu'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Platform + Gamertag */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className="text-xs text-gray-400 uppercase tracking-wider">Plataforma</label>
+            <select value={platform} onChange={e => setPlatform(e.target.value as 'PlayStation' | 'Xbox' | 'PC')}
+              className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-white">
+              <option>PlayStation</option>
+              <option>Xbox</option>
+              <option>PC</option>
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-gray-400 uppercase tracking-wider">Gamertag Oponente</label>
+            <input type="text" value={gamertag} onChange={e => setGamertag(e.target.value)}
+              placeholder="NomeDoOponente"
+              className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-white placeholder:text-gray-600" />
+          </div>
+        </div>
+
+        {/* Advanced Stats */}
+        <button type="button" onClick={() => setShowAdvanced(v => !v)}
+          className="w-full flex items-center justify-between bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-3 text-sm text-gray-400 hover:border-white/20 transition">
+          <span>Métricas Avançadas (xG, Posse, Formações)</span>
+          {showAdvanced ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </button>
+
+        {showAdvanced && (
+          <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-5 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs text-gray-400">xG (Meu)</label>
+                <input type="number" step="0.1" min="0" value={xgMe} onChange={e => setXgMe(e.target.value)}
+                  placeholder="1.4"
+                  className="w-full bg-[#262626] border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-white placeholder:text-gray-700" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-gray-400">xG (Opp)</label>
+                <input type="number" step="0.1" min="0" value={xgOpp} onChange={e => setXgOpp(e.target.value)}
+                  placeholder="0.8"
+                  className="w-full bg-[#262626] border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-white placeholder:text-gray-700" />
+              </div>
             </div>
-            <div>
-              <label className="block text-xs text-gray-400 uppercase tracking-wider mb-2">
-                Gols do Oponente
-              </label>
-              <input
-                type="number"
-                min="0"
-                max="30"
-                className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 text-2xl font-bold text-center focus:outline-none focus:border-primary transition-colors"
-                {...register("goals_against", {
-                  required: true,
-                  min: 0,
-                  valueAsNumber: true,
-                })}
-              />
-              {errors.goals_against && (
-                <p className="text-loss text-xs mt-1">Obrigatório</p>
-              )}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs text-gray-400">Formação (Minha)</label>
+                <select value={formationMe} onChange={e => setFormationMe(e.target.value)}
+                  className="w-full bg-[#262626] border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-white">
+                  {FORMATIONS.map(f => <option key={f}>{f}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-gray-400">Formação (Opp)</label>
+                <select value={formationOpp} onChange={e => setFormationOpp(e.target.value)}
+                  className="w-full bg-[#262626] border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-white">
+                  {FORMATIONS.map(f => <option key={f}>{f}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs text-gray-400">Posse de Bola (%)</label>
+                <input type="number" min="0" max="100" value={possessionMe} onChange={e => setPossessionMe(e.target.value)}
+                  placeholder="55"
+                  className="w-full bg-[#262626] border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-white placeholder:text-gray-700" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-gray-400">Finalizações (Minhas)</label>
+                <input type="number" min="0" value={shotsMe} onChange={e => setShotsMe(e.target.value)}
+                  placeholder="12"
+                  className="w-full bg-[#262626] border border-white/10 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-white placeholder:text-gray-700" />
+              </div>
             </div>
           </div>
+        )}
 
-          {/* Notes */}
-          <div>
-            <label className="block text-xs text-gray-400 uppercase tracking-wider mb-2">
-              Anotações <span className="text-gray-600">(opcional)</span>
-            </label>
-            <textarea
-              placeholder="Lag, jogador tóxico, formação que funcionou..."
-              rows={3}
-              className="w-full bg-surface-2 border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors resize-none"
-              {...register("notes")}
-            />
+        {/* AUTO DIFFICULTY CARD */}
+        <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Zap size={14} className="text-[#FFB800]" />
+            <span className="text-xs text-gray-400 uppercase tracking-wider">Dificuldade Auto-Calculada</span>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <div className="w-full bg-[#262626] rounded-full h-3 overflow-hidden">
+                <div className={`h-3 rounded-full transition-all duration-300 ${
+                    autoDiff <= 2.5 ? 'bg-green-500' :
+                    autoDiff <= 4.5 ? 'bg-yellow-500' :
+                    autoDiff <= 6.5 ? 'bg-orange-500' :
+                    autoDiff <= 8.5 ? 'bg-red-500' : 'bg-purple-500'
+                  }`}
+                  style={{ width: `${(autoDiff / 10) * 100}%` }}
+                />
+              </div>
+              <div className="flex justify-between mt-1">
+                <span className="text-[10px] text-gray-600">1</span>
+                <span className="text-[10px] text-gray-600">10</span>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className={`text-2xl font-black ${diffLabel.color}`}>{autoDiff.toFixed(1)}</p>
+              <p className={`text-xs font-semibold ${diffLabel.color}`}>{diffLabel.label}</p>
+            </div>
+          </div>
+          <p className="text-[11px] text-gray-600 mt-2">
+            Calculado automaticamente. Preencha xG e posse nas métricas avançadas para máxima precisão.
+          </p>
+        </div>
 
-      {submitError && (
-        <p className="text-loss text-sm text-center">{submitError}</p>
-      )}
+        {/* ELO PREVIEW */}
+        <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4">
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-3">Impacto no ELO</p>
+          <div className="flex items-center justify-between">
+            <div className="text-center">
+              <p className={`text-lg font-black ${tierColor}`}>{currentElo}</p>
+              <p className={`text-xs ${tierColor}`}>{currentTier}</p>
+            </div>
+            <div className={`text-2xl font-black ${previewEloChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {previewEloChange >= 0 ? '+' : ''}{previewEloChange}
+            </div>
+            <div className="text-center">
+              <p className={`text-lg font-black ${newTierColor}`}>{currentElo + previewEloChange}</p>
+              <p className={`text-xs ${newTierColor}`}>{newTier}</p>
+            </div>
+          </div>
+        </div>
 
-      <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="px-5 py-3.5 bg-surface border border-border rounded-xl text-gray-400 font-medium text-sm"
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="flex-1 py-3.5 bg-primary text-black font-bold rounded-xl transition-all hover:opacity-90 active:scale-95 disabled:opacity-50 text-sm"
-        >
-          {isSubmitting ? "Salvando..." : "💾  Salvar Resultado"}
+        {/* Player Stats */}
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Estatísticas dos Jogadores</h2>
+          {squad.length === 0 ? (
+            <p className="text-sm text-gray-500 bg-[#1a1a1a] rounded-xl p-4 border border-white/10">
+              Adicione jogadores ao seu{' '}
+              <a href="/squad" className="text-white underline">elenco</a>{' '}
+              para registrar as stats.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {squad.map(player => {
+                const entry  = playerEntries.find(e => e.player.id === player.id);
+                const active = !!entry;
+                const isGK   = player.position === 'GK';
+                return (
+                  <div key={player.id}
+                    className={`rounded-xl border transition ${active ? 'border-white/30 bg-white/5' : 'border-white/10 bg-[#1a1a1a]'}`}>
+                    <button type="button" onClick={() => togglePlayer(player)}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left">
+                      <span className={`w-2 h-2 rounded-full ${active ? 'bg-white' : 'bg-white/20'}`} />
+                      <span className="text-xs text-gray-500 w-10 text-center border border-white/10 rounded px-1 py-0.5">{player.position}</span>
+                      <span className={`flex-1 text-sm font-medium ${active ? 'text-white' : 'text-gray-400'}`}>{player.name}</span>
+                      <span className={`text-xs ${active ? 'text-white' : 'text-gray-600'}`}>{active ? 'remover' : 'adicionar'}</span>
+                    </button>
+
+                    {active && entry && (
+                      <div className="px-4 pb-4 space-y-3">
+                        {!isGK && (
+                          <div className="flex gap-6 flex-wrap">
+                            {(['goals', 'assists'] as const).map(field => (
+                              <div key={field} className="flex items-center gap-2">
+                                <span className="text-xs text-gray-400 w-14">{field === 'goals' ? '⚽ Gols' : '🎯 Assist'}</span>
+                                <button type="button" onClick={() => adjustCounter(player.id, field, -1)}
+                                  className="w-7 h-7 rounded-full bg-[#262626] flex items-center justify-center hover:bg-[#333]"><Minus size={12} /></button>
+                                <span className={`w-6 text-center font-bold ${field === 'goals' ? 'text-white' : 'text-blue-400'}`}>{entry[field]}</span>
+                                <button type="button" onClick={() => adjustCounter(player.id, field, 1)}
+                                  className="w-7 h-7 rounded-full bg-[#262626] flex items-center justify-center hover:bg-[#333]"><Plus size={12} /></button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {isGK && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 w-16">🧤 Defesas</span>
+                            <button type="button" onClick={() => adjustCounter(player.id, 'saves', -1)}
+                              className="w-7 h-7 rounded-full bg-[#262626] flex items-center justify-center hover:bg-[#333]"><Minus size={12} /></button>
+                            <span className="w-6 text-center font-bold text-cyan-400">{entry.saves}</span>
+                            <button type="button" onClick={() => adjustCounter(player.id, 'saves', 1)}
+                              className="w-7 h-7 rounded-full bg-[#262626] flex items-center justify-center hover:bg-[#333]"><Plus size={12} /></button>
+                          </div>
+                        )}
+                        <div className="flex gap-3">
+                          <button type="button" onClick={() => updateEntry(player.id, 'motm', !entry.motm)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition ${
+                              entry.motm ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400' : 'border-white/10 text-gray-500 hover:border-white/20'
+                            }`}><Star size={12} fill={entry.motm ? 'currentColor' : 'none'} /> MOTM</button>
+                          <button type="button" onClick={() => updateEntry(player.id, 'clean_sheet', !entry.clean_sheet)}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition ${
+                              entry.clean_sheet ? 'border-cyan-400 bg-cyan-400/10 text-cyan-400' : 'border-white/10 text-gray-500 hover:border-white/20'
+                            }`}><Shield size={12} fill={entry.clean_sheet ? 'currentColor' : 'none'} /> CS</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Notes */}
+        <div className="space-y-1">
+          <label className="text-xs text-gray-400 uppercase tracking-wider">Observações</label>
+          <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
+            placeholder="Alguma nota sobre essa partida..."
+            className="w-full bg-[#1a1a1a] border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-white resize-none placeholder:text-gray-600" />
+        </div>
+
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-400 text-sm">{error}</div>
+        )}
+
+        <button type="submit" disabled={saving}
+          className="w-full flex items-center justify-center gap-2 bg-[#FFB800] text-black font-black py-4 rounded-2xl text-lg hover:bg-[#CC9400] transition disabled:opacity-50">
+          {saving ? <Loader2 size={20} className="animate-spin" /> : null}
+          {saving ? 'Salvando...' : '⚽ Registrar Partida'}
         </button>
       </div>
     </form>
