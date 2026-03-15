@@ -8,6 +8,7 @@ export interface SquadPlayer {
   user_id: string;
   name: string;
   position: Position | string;
+  overall: number | null;
   is_active: boolean;
   created_at: string;
 }
