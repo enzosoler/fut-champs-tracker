@@ -8,9 +8,8 @@ import {
   Match, MatchWithPlayers, MatchPlayer, SquadPlayer, PlayerLeaderboard,
   getMatchResult, RANK_THRESHOLDS, MatchResult, WLSession
 } from '@/types';
-import { getEloTier } from '@/lib/elo';
 import { useLanguage } from '@/components/LanguageProvider';
-import { t, OVERALL_KEY } from '@/lib/i18n';
+import { t, OVERALL_KEY, ACTIVE_WL_KEY } from '@/lib/i18n';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -19,6 +18,7 @@ export default function DashboardPage() {
   const [leaderboard, setLeaderboard] = useState<PlayerLeaderboard[]>([]);
   const [wlSessions,  setWlSessions]  = useState<WLSession[]>([]);
   const [loading,     setLoading]     = useState(true);
+  const [activeWlId,  setActiveWlId]  = useState<string | null>(null);
 
   // ── My Overall ──────────────────────────────────────────────────────────
   const [myOverall,      setMyOverall]      = useState<string>('');
@@ -65,6 +65,13 @@ export default function DashboardPage() {
       if (matchRes.data)  setMatches(matchRes.data as MatchWithPlayers[]);
       if (lbRes.data)     setLeaderboard(lbRes.data as PlayerLeaderboard[]);
       if (wlRes.data)     setWlSessions(wlRes.data as WLSession[]);
+
+      // Load active WL from localStorage
+      try {
+        const wl = localStorage.getItem(ACTIVE_WL_KEY);
+        if (wl) setActiveWlId(wl);
+      } catch {}
+
       setLoading(false);
     }
     load();
@@ -86,8 +93,9 @@ export default function DashboardPage() {
 
   const last5: MatchResult[] = matches.slice(0, 5).map(m => getMatchResult(m));
 
-  const currentElo = matches.find(m => m.elo_after != null)?.elo_after ?? 1000;
-  const { tierKey: eloTierKey, color: eloColor } = getEloTier(currentElo);
+  // Calculate Form from active WL
+  const wlMatches = activeWlId ? matches.filter(m => m.week_id === activeWlId) : [];
+  const form = wlMatches.reduce((acc, m) => acc + (getMatchResult(m) === 'W' ? 1 : getMatchResult(m) === 'L' ? -1 : 0), 0);
 
   const currentWeekId  = matches.length > 0 ? matches[0].week_id : null;
   const weekMatches    = currentWeekId ? matches.filter(m => m.week_id === currentWeekId) : [];
@@ -199,21 +207,21 @@ export default function DashboardPage() {
           <>
             {/* Overall stats */}
             <div className="grid grid-cols-3 gap-3">
-              <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 text-center">
-                <p className="text-3xl font-black text-green-400">{wins}</p>
+              <div className="bg-[#1a1a1a] border border-green-500/20 rounded-2xl p-4 text-center">
+                <p className="text-4xl font-black text-green-400">{wins}</p>
                 <p className="text-xs text-gray-400 mt-1">{t('wins', lang)}</p>
               </div>
-              <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 text-center">
-                <p className="text-3xl font-black text-red-400">{losses}</p>
+              <div className="bg-[#1a1a1a] border border-red-500/20 rounded-2xl p-4 text-center">
+                <p className="text-4xl font-black text-red-400">{losses}</p>
                 <p className="text-xs text-gray-400 mt-1">{t('losses', lang)}</p>
               </div>
               <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 text-center">
-                <p className="text-3xl font-black text-white">{winRate}%</p>
+                <p className={`text-4xl font-black ${winRate >= 60 ? 'text-[#FFB800]' : winRate >= 40 ? 'text-white' : 'text-red-400'}`}>{winRate}%</p>
                 <p className="text-xs text-gray-400 mt-1">{t('win_rate', lang)}</p>
               </div>
             </div>
 
-            {/* Goals + Streak + ELO row */}
+            {/* Goals + Streak + Form row */}
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 text-center">
                 <p className="text-2xl font-black text-white">{totalGoalsFor}</p>
@@ -224,22 +232,22 @@ export default function DashboardPage() {
               <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 text-center">
                 {currentStreak > 0 ? (
                   <>
-                    <p className="text-3xl font-black text-[#FFB800]">🔥{currentStreak}</p>
+                    <p className="text-4xl font-black text-[#FFB800]">🔥{currentStreak}</p>
                     <p className="text-xs text-gray-400 mt-1">{t('win_streak', lang)}</p>
                   </>
                 ) : (
                   <>
-                    <p className="text-3xl font-black text-gray-500">—</p>
+                    <p className="text-4xl font-black text-gray-500">—</p>
                     <p className="text-xs text-gray-400 mt-1">{t('no_streak', lang)}</p>
                   </>
                 )}
               </div>
               <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 text-center">
-                <p className={`text-2xl font-black ${eloColor}`}>{currentElo}</p>
-                <p className={`text-xs mt-1 ${eloColor}`}>{t(eloTierKey as Parameters<typeof t>[0], lang)}</p>
-                {avgDiff && (
-                  <p className="text-[10px] text-gray-500 mt-1">{t('avg_diff', lang)} {avgDiff}</p>
-                )}
+                <p className={`text-2xl font-black ${form > 0 ? 'text-green-400' : form < 0 ? 'text-red-400' : 'text-gray-400'}`}>
+                  {form > 0 ? `+${form}` : form}
+                </p>
+                <p className="text-xs text-gray-400 mt-1">Form WL</p>
+                {activeWlId && <p className="text-[10px] text-gray-600 mt-0.5">{activeWlId}</p>}
               </div>
             </div>
 
@@ -252,13 +260,13 @@ export default function DashboardPage() {
               <div className="flex gap-2">
                 {last5.map((r, i) => (
                   <div key={i}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm ${resultColor[r]}`}>
+                    className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-sm ${resultColor[r]}`}>
                     {r}
                   </div>
                 ))}
                 {Array.from({ length: Math.max(0, 5 - last5.length) }).map((_, i) => (
                   <div key={`e-${i}`}
-                    className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-gray-700 text-xs">
+                    className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center text-gray-700 text-xs">
                     —
                   </div>
                 ))}
@@ -272,9 +280,17 @@ export default function DashboardPage() {
                 <span className="text-sm font-semibold text-gray-300">{t('rank_calc', lang)}</span>
                 <span className="ml-auto text-xs text-gray-500">{weekPlayed}/15 {t('matches', lang)}</span>
               </div>
-              <div className="w-full bg-[#262626] rounded-full h-3">
-                <div className="bg-[#FFB800] h-3 rounded-full transition-all"
-                  style={{ width: `${Math.min(100, (weekWins / 15) * 100)}%` }} />
+              <div className="space-y-2">
+                <div className="w-full bg-[#262626] rounded-full h-3 overflow-hidden">
+                  <div className="bg-[#FFB800] h-3 rounded-full transition-all"
+                    style={{ width: `${Math.min(100, (weekPlayed / 15) * 100)}%` }} />
+                </div>
+                {nextRank && (
+                  <div className="w-full bg-[#262626] rounded-full h-2 overflow-hidden">
+                    <div className="bg-green-500 h-2 rounded-full transition-all"
+                      style={{ width: `${Math.min(100, (weekWins / nextRank.wins) * 100)}%` }} />
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-5 gap-1 text-center">
                 {RANK_THRESHOLDS.map(r => (

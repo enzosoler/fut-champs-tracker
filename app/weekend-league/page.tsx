@@ -89,6 +89,10 @@ export default function WeekendLeaguePage() {
   const activePlayed = activeMatches.length;
   const nextRank     = RANK_THRESHOLDS.find(r => r.wins > activeWins);
   const winsNeeded   = nextRank ? Math.max(0, nextRank.wins - activeWins) : 0;
+  const form         = activeMatches.reduce((acc, m) => {
+    const r = getMatchResult(m);
+    return acc + (r === 'W' ? 1 : r === 'L' ? -1 : 0);
+  }, 0);
 
   const resultColor: Record<MatchResult, string> = {
     W: 'bg-[#FFB800] text-black',
@@ -124,6 +128,9 @@ export default function WeekendLeaguePage() {
                 <span className="font-black text-lg">{wlLabel(activeWlId)}</span>
                 <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full font-semibold">
                   {t('wl_active', lang)}
+                </span>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${form > 0 ? 'bg-green-500/20 text-green-400' : form < 0 ? 'bg-red-500/20 text-red-400' : 'bg-gray-500/20 text-gray-400'}`}>
+                  Form {form > 0 ? `+${form}` : form}
                 </span>
               </div>
               <span className="text-gray-400 font-bold text-sm">{activePlayed}/{MAX_MATCHES}</span>
@@ -163,7 +170,7 @@ export default function WeekendLeaguePage() {
             </div>
 
             {/* Stats row */}
-            <div className="grid grid-cols-4 gap-2 text-center">
+            <div className="grid grid-cols-5 gap-2 text-center">
               <div className="bg-white/5 rounded-xl p-3">
                 <p className="text-2xl font-black text-green-400">{activeWins}</p>
                 <p className="text-[10px] text-gray-500 mt-0.5">{t('wins', lang)}</p>
@@ -181,6 +188,12 @@ export default function WeekendLeaguePage() {
                   {activeGF}<span className="text-gray-500 text-sm">-{activeGA}</span>
                 </p>
                 <p className="text-[10px] text-gray-500 mt-0.5">GF-GA</p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-3">
+                <p className={`text-2xl font-black ${form > 0 ? 'text-green-400' : form < 0 ? 'text-red-400' : 'text-gray-400'}`}>
+                  {form > 0 ? `+${form}` : form}
+                </p>
+                <p className="text-[10px] text-gray-500 mt-0.5">Form</p>
               </div>
             </div>
 

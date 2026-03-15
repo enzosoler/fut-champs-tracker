@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, PlusCircle, History, BarChart2, Swords, Trophy } from "lucide-react";
+import { LayoutDashboard, PlusCircle, History, BarChart2, Users, Trophy } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { t, ACTIVE_WL_KEY } from "@/lib/i18n";
 
@@ -23,7 +23,7 @@ export default function BottomNav() {
     { labelKey: 'nav_wl'         as const, icon: Trophy,           href: "/weekend-league"  },
     { labelKey: 'nav_register'   as const, icon: PlusCircle,       href: "/add-match"       },
     { labelKey: 'nav_history'    as const, icon: History,          href: "/history"         },
-    { labelKey: 'nav_opponents'  as const, icon: Swords,           href: "/opponents"       },
+    { labelKey: 'nav_squad'      as const, icon: Users,            href: "/squad"           },
     { labelKey: 'nav_analytics'  as const, icon: BarChart2,        href: "/analytics"       },
   ];
 

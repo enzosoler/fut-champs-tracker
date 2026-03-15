@@ -8,7 +8,6 @@ import {
 } from 'lucide-react';
 import { SquadPlayer, FORMATIONS, MatchEndType } from '@/types';
 import { calcAutoDifficulty, getDifficultyLabel, DifficultyInput } from '@/lib/autodifficulty';
-import { calcEloChange, getEloTier } from '@/lib/elo';
 import { useLanguage } from '@/components/LanguageProvider';
 import { t, ACTIVE_WL_KEY } from '@/lib/i18n';
 
@@ -29,7 +28,6 @@ export default function AddMatchForm() {
   const [squad, setSquad] = useState<SquadPlayer[]>([]);
   const [playerEntries, setPlayerEntries] = useState<PlayerEntry[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [currentElo, setCurrentElo] = useState<number>(1000);
 
   const [weekId,    setWeekId]    = useState('');
   const [activeWl,  setActiveWl]  = useState<string | null>(null);
@@ -61,14 +59,30 @@ export default function AddMatchForm() {
 
     supabase.from('squad').select('*').eq('is_active', true).order('position').order('name')
       .then(({ data }) => { if (data) setSquad(data as SquadPlayer[]); });
-    supabase.from('matches').select('elo_after, week_id').order('created_at', { ascending: false }).limit(1)
-      .then(({ data }) => {
-        if (data && data.length > 0) {
-          if (data[0].elo_after) setCurrentElo(data[0].elo_after);
-          // Count matches in current WL to set match number
-        }
-      });
   }, []);
+
+  // Auto clean sheet based on goalsOpp
+  useEffect(() => {
+    setPlayerEntries(prev => {
+      const defensivePositions = ['GK', 'CB', 'LB', 'RB'];
+      if (goalsOpp === 0) {
+        // Set clean_sheet to true for all defensive players
+        return prev.map(e =>
+          defensivePositions.includes(e.player.position)
+            ? { ...e, clean_sheet: true }
+            : e
+        );
+      } else if (goalsOpp > 0) {
+        // Set clean_sheet to false for all defensive players
+        return prev.map(e =>
+          defensivePositions.includes(e.player.position)
+            ? { ...e, clean_sheet: false }
+            : e
+        );
+      }
+      return prev;
+    });
+  }, [goalsOpp]);
 
   const diffInput: DifficultyInput = {
     xg_opp:        xgOpp !== '' ? parseFloat(xgOpp) : null,
@@ -85,13 +99,6 @@ export default function AddMatchForm() {
   const autoDiff  = calcAutoDifficulty(diffInput);
   const diffLabel = getDifficultyLabel(autoDiff);
 
-  const previewResult =
-    pkMe !== '' && pkOpp !== ''
-      ? parseInt(pkMe) > parseInt(pkOpp) ? 'W' : parseInt(pkMe) < parseInt(pkOpp) ? 'L' : 'D'
-      : goalsMe > goalsOpp ? 'W' : goalsMe < goalsOpp ? 'L' : 'D';
-  const previewEloChange = calcEloChange(previewResult, autoDiff);
-  const { tierKey: currentTierKey, color: tierColor }    = getEloTier(currentElo);
-  const { tierKey: newTierKey,     color: newTierColor } = getEloTier(currentElo + previewEloChange);
 
   function togglePlayer(player: SquadPlayer) {
     setPlayerEntries(prev => {
@@ -123,8 +130,6 @@ export default function AddMatchForm() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setError(t('session_expired', lang)); setSaving(false); return; }
 
-    const eloChange = calcEloChange(previewResult, autoDiff);
-    const eloAfter  = currentElo + eloChange;
     const legacyDifficulty = autoDiff <= 2.5 ? 'Easy' : autoDiff <= 5.0 ? 'Medium' : autoDiff <= 7.5 ? 'Hard' : 'Sweaty';
 
     const { data: matchData, error: matchError } = await supabase.from('matches').insert({
@@ -137,7 +142,7 @@ export default function AddMatchForm() {
       shots_me: shotsMe !== '' ? parseInt(shotsMe) : null,
       ping, difficulty: legacyDifficulty, auto_difficulty: autoDiff, match_end_type: matchEndType,
       rage_quit: rageQuit, platform, gamertag: gamertag.trim(), notes: notes.trim() || null,
-      elo_before: currentElo, elo_after: eloAfter, elo_change: eloChange,
+      elo_before: null, elo_after: null, elo_change: null,
     }).select().single();
 
     if (matchError || !matchData) { setError(matchError?.message || 'Erro ao salvar partida.'); setSaving(false); return; }
@@ -395,24 +400,6 @@ export default function AddMatchForm() {
             </div>
           </div>
           <p className="text-[11px] text-gray-600 mt-2">{t('diff_tooltip', lang)}</p>
-        </div>
-
-        {/* ELO PREVIEW */}
-        <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4">
-          <p className="text-xs text-gray-400 uppercase tracking-wider mb-3">{t('elo_impact', lang)}</p>
-          <div className="flex items-center justify-between">
-            <div className="text-center">
-              <p className={`text-lg font-black ${tierColor}`}>{currentElo}</p>
-              <p className={`text-xs ${tierColor}`}>{t(currentTierKey as Parameters<typeof t>[0], lang)}</p>
-            </div>
-            <div className={`text-2xl font-black ${previewEloChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              {previewEloChange >= 0 ? '+' : ''}{previewEloChange}
-            </div>
-            <div className="text-center">
-              <p className={`text-lg font-black ${newTierColor}`}>{currentElo + previewEloChange}</p>
-              <p className={`text-xs ${newTierColor}`}>{t(newTierKey as Parameters<typeof t>[0], lang)}</p>
-            </div>
-          </div>
         </div>
 
         {/* Player Stats */}
