@@ -30,7 +30,7 @@ export default function BottomNav() {
   if (pathname === "/login") return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-[#0d0d0d]/95 backdrop-blur border-t border-white/10 z-20">
+    <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-[#273246] z-20">
       <div className="flex max-w-2xl mx-auto">
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
@@ -40,14 +40,18 @@ export default function BottomNav() {
               key={item.href}
               href={item.href}
               className={`relative flex flex-1 flex-col items-center gap-1 py-3 text-[10px] font-medium transition-colors ${
-                isActive ? "text-[#FFB800]" : "text-gray-500 hover:text-gray-300"
+                isActive ? "text-primary" : "text-[#94A3B8] hover:text-white"
               }`}
             >
               <item.icon size={19} strokeWidth={isActive ? 2.5 : 1.8} />
               {t(item.labelKey, lang)}
               {/* Active WL indicator dot */}
               {isWL && hasActiveWL && !isActive && (
-                <span className="absolute top-2 right-[calc(50%-14px)] w-2 h-2 bg-green-400 rounded-full" />
+                <span className="absolute top-2 right-[calc(50%-14px)] w-2 h-2 bg-win rounded-full" />
+              )}
+              {/* Active indicator bar */}
+              {isActive && (
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full" />
               )}
             </Link>
           );

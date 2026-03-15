@@ -58,7 +58,7 @@ export default function LoginPage() {
       </div>
 
       {/* ── Glow effects ── */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 bg-[#FFB800]/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-80 h-80 bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
 
       {/* ── Card ── */}
       <div className="relative w-full max-w-sm z-10">
@@ -67,7 +67,7 @@ export default function LoginPage() {
         <div className="flex flex-col items-center mb-8">
           <div className="relative mb-5">
             {/* Outer glow ring */}
-            <div className="absolute inset-0 rounded-full bg-[#FFB800]/20 blur-xl scale-150" />
+            <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl scale-150" />
             {/* Shield shape */}
             <div className="relative w-24 h-24 flex items-center justify-center">
               <svg viewBox="0 0 100 110" className="absolute inset-0 w-full h-full drop-shadow-lg">
@@ -104,23 +104,23 @@ export default function LoginPage() {
             FUT CHAMPS
           </h1>
           <div className="flex items-center gap-2 mt-1">
-            <div className="h-px w-8 bg-[#FFB800]/40" />
-            <span className="text-[#FFB800] text-xs font-bold tracking-[0.25em] uppercase">Tracker</span>
-            <div className="h-px w-8 bg-[#FFB800]/40" />
+            <div className="h-px w-8 bg-primary/40" />
+            <span className="text-primary text-xs font-bold tracking-[0.25em] uppercase">Tracker</span>
+            <div className="h-px w-8 bg-primary/40" />
           </div>
-          <p className="text-gray-600 text-xs mt-2">FC 26 · Temporada 2025/26</p>
+          <p className="text-[#94A3B8]/70 text-xs mt-2">FC 26 · Temporada 2025/26</p>
         </div>
 
         {/* Form card */}
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 shadow-2xl">
+        <div className="bg-white/5 backdrop-blur-sm border border-[#273246] rounded-2xl p-6 shadow-2xl">
           {sent ? (
             <div className="text-center space-y-4 py-2">
-              <div className="w-14 h-14 rounded-full bg-[#FFB800]/10 border border-[#FFB800]/30 flex items-center justify-center mx-auto">
-                <Mail size={24} className="text-[#FFB800]" />
+              <div className="w-14 h-14 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center mx-auto">
+                <Mail size={24} className="text-primary" />
               </div>
               <div>
                 <h2 className="font-bold text-lg text-white">Verifique seu e-mail</h2>
-                <p className="text-gray-400 text-sm mt-2 leading-relaxed">
+                <p className="text-[#94A3B8] text-sm mt-2 leading-relaxed">
                   Enviamos um link de acesso para{" "}
                   <span className="text-white font-semibold">{email}</span>.
                   <br />Clique no link para entrar.
@@ -128,7 +128,7 @@ export default function LoginPage() {
               </div>
               <button
                 onClick={() => { setSent(false); setEmail(""); }}
-                className="text-[#FFB800]/60 text-sm hover:text-[#FFB800] transition"
+                className="text-primary/60 text-sm hover:text-primary transition"
               >
                 Usar outro e-mail
               </button>
@@ -136,18 +136,18 @@ export default function LoginPage() {
           ) : (
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs text-gray-400 font-medium uppercase tracking-wider">
+                <label className="text-xs text-[#94A3B8] font-medium uppercase tracking-wider">
                   E-mail
                 </label>
                 <div className="relative">
-                  <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600" />
+                  <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]/70" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="digite seu e-mail..."
                     required
-                    className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white text-sm placeholder-gray-700 focus:outline-none focus:border-[#FFB800]/50 focus:bg-black/60 transition-all"
+                    className="w-full bg-black/40 border border-[#273246] rounded-xl pl-10 pr-4 py-3 text-white text-sm placeholder-gray-700 focus:outline-none focus:border-primary/50 focus:bg-black/60 transition-all"
                   />
                 </div>
               </div>
@@ -159,7 +159,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full relative overflow-hidden bg-[#FFB800] hover:bg-[#FFC933] active:scale-[0.98] disabled:opacity-50 text-black font-black py-3.5 rounded-xl transition-all text-sm tracking-wide shadow-lg shadow-[#FFB800]/20"
+                className="w-full relative overflow-hidden bg-primary hover:bg-[#FFC933] active:scale-[0.98] disabled:opacity-50 text-black font-black py-3.5 rounded-xl transition-all text-sm tracking-wide shadow-lg shadow-[#FFB800]/20"
               >
                 {loading ? (
                   <span className="flex items-center justify-center gap-2">
@@ -183,7 +183,7 @@ export default function LoginPage() {
       {/* Footer */}
       <div className="absolute bottom-6 text-center z-10">
         <p className="text-xs text-gray-800">
-          Desenvolvido por <span className="text-gray-600 font-semibold">SolerWorks</span>
+          Desenvolvido por <span className="text-[#94A3B8]/70 font-semibold">SolerWorks</span>
         </p>
       </div>
     </div>

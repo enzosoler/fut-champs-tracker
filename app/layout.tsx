@@ -14,7 +14,7 @@ export const viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#121212",
+  themeColor: "#0B0E14",
 };
 
 export default function RootLayout({
@@ -27,13 +27,16 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Montserrat:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
       </head>
-      <body className="bg-background text-white font-sans min-h-screen">
+      <body className="bg-background text-[#F1F5F9] font-sans min-h-screen">
         <LanguageProvider>
           <AuthProvider>
             <Header />
-            <main className="pb-28 px-4 pt-4 max-w-2xl mx-auto lg:pb-8 lg:pt-8 lg:px-8">{children}</main>
+            <main className="pb-28 pt-4 max-w-2xl mx-auto lg:pb-8 lg:pt-8">{children}</main>
             <BottomNav />
           </AuthProvider>
         </LanguageProvider>

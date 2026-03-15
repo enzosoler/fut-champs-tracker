@@ -22,15 +22,15 @@ export default function AnalyticsPage() {
   }, []);
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center">
+    <div className="min-h-screen bg-background flex items-center justify-center">
       <Loader2 className="animate-spin text-white" size={36} />
     </div>
   );
 
   if (matches.length === 0) return (
-    <div className="min-h-screen bg-[#0d0d0d] text-white p-4 flex flex-col items-center justify-center gap-4">
+    <div className="min-h-screen bg-background text-white p-4 flex flex-col items-center justify-center gap-4">
       <BarChart2 size={48} className="opacity-20" />
-      <p className="text-gray-500">{t('no_data', lang)}</p>
+      <p className="text-[#94A3B8]">{t('no_data', lang)}</p>
     </div>
   );
 
@@ -131,7 +131,7 @@ export default function AnalyticsPage() {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
     return (
-      <div className="bg-[#1a1a1a] border border-white/10 rounded-xl px-3 py-2 text-xs">
+      <div className="bg-card border border-[#273246] rounded-xl px-3 py-2 text-xs">
         <p className="font-bold text-white mb-1">{label}</p>
         {payload.map((p: any) => (
           <p key={p.name} style={{ color: p.color }}>{p.name}: {p.value}</p>
@@ -141,40 +141,40 @@ export default function AnalyticsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0d0d0d] text-white p-4 md:p-8">
+    <div className="min-h-screen bg-background text-white p-4 md:p-8">
       <div className="max-w-2xl mx-auto space-y-8">
 
         <div>
           <h1 className="text-2xl font-black">{t('analytics_title', lang)}</h1>
-          <p className="text-sm text-gray-400 mt-0.5">{t('insights', lang)} {matches.length} {t('matches', lang)}</p>
+          <p className="text-sm text-[#94A3B8] mt-0.5">{t('insights', lang)} {matches.length} {t('matches', lang)}</p>
         </div>
 
         {/* ── Clutch stats ── */}
         <section className="space-y-3">
           <div className="flex items-center gap-2">
-            <Swords size={16} className="text-[#FFB800]" />
+            <Swords size={16} className="text-primary" />
             <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{t('clutch_title', lang)}</h2>
           </div>
-          <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 space-y-3">
-            <p className="text-xs text-gray-500">{clutchTotal} {t('close_matches', lang)}</p>
+          <div className="bg-card border border-[#273246] rounded-2xl p-4 space-y-3">
+            <p className="text-xs text-[#94A3B8]">{clutchTotal} {t('close_matches', lang)}</p>
             <div className="flex gap-4 text-center">
               <div className="flex-1">
                 <p className="text-2xl font-black text-green-400">{clutchW}</p>
-                <p className="text-xs text-gray-400">{t('wins', lang)}</p>
+                <p className="text-xs text-[#94A3B8]">{t('wins', lang)}</p>
               </div>
               <div className="flex-1">
                 <p className="text-2xl font-black text-yellow-400">{clutchD}</p>
-                <p className="text-xs text-gray-400">{t('draws', lang)}</p>
+                <p className="text-xs text-[#94A3B8]">{t('draws', lang)}</p>
               </div>
               <div className="flex-1">
                 <p className="text-2xl font-black text-red-400">{clutchL}</p>
-                <p className="text-xs text-gray-400">{t('losses', lang)}</p>
+                <p className="text-xs text-[#94A3B8]">{t('losses', lang)}</p>
               </div>
               <div className="flex-1">
                 <p className="text-2xl font-black text-white">
                   {clutchTotal > 0 ? Math.round((clutchW / clutchTotal) * 100) : 0}%
                 </p>
-                <p className="text-xs text-gray-400">{t('clutch_wr', lang)}</p>
+                <p className="text-xs text-[#94A3B8]">{t('clutch_wr', lang)}</p>
               </div>
             </div>
           </div>
@@ -184,10 +184,10 @@ export default function AnalyticsPage() {
         {eloData.length > 1 && (
           <section className="space-y-3">
             <div className="flex items-center gap-2">
-              <Target size={16} className="text-[#FFB800]" />
+              <Target size={16} className="text-primary" />
               <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{t('elo_progress', lang)}</h2>
             </div>
-            <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4">
+            <div className="bg-card border border-[#273246] rounded-2xl p-4">
               <ResponsiveContainer width="100%" height={180}>
                 <LineChart data={eloData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
@@ -204,10 +204,10 @@ export default function AnalyticsPage() {
         {/* ── Win rate by day ── */}
         <section className="space-y-3">
           <div className="flex items-center gap-2">
-            <Clock size={16} className="text-[#FFB800]" />
+            <Clock size={16} className="text-primary" />
             <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{t('wr_by_day', lang)}</h2>
           </div>
-          <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4">
+          <div className="bg-card border border-[#273246] rounded-2xl p-4">
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={dayData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
@@ -221,7 +221,7 @@ export default function AnalyticsPage() {
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-            <div className="flex justify-between mt-3 pt-3 border-t border-white/5 text-xs">
+            <div className="flex justify-between mt-3 pt-3 border-t border-[#273246]/50 text-xs">
               {(() => {
                 const played = dayData.filter(d => d.total > 0);
                 if (!played.length) return null;
@@ -242,16 +242,16 @@ export default function AnalyticsPage() {
         {formData.length > 0 && (
           <section className="space-y-3">
             <div className="flex items-center gap-2">
-              <Swords size={16} className="text-[#FFB800]" />
+              <Swords size={16} className="text-primary" />
               <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{t('kryptonite', lang)}</h2>
             </div>
-            <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4 space-y-3">
+            <div className="bg-card border border-[#273246] rounded-2xl p-4 space-y-3">
               {kryptonite && (
                 <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-xl p-3">
                   <span className="text-2xl">😨</span>
                   <div>
                     <p className="font-bold text-red-400">{kryptonite.name}</p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-[#94A3B8]">
                       {kryptonite.wins}{t('wins', lang).charAt(0)} {kryptonite.draws}{t('draws', lang).charAt(0)} {kryptonite.losses}{t('losses', lang).charAt(0)} —{' '}
                       <span className="text-red-400 font-bold">{kryptonite.winRate}% {t('win_rate', lang)}</span>
                     </p>
@@ -279,10 +279,10 @@ export default function AnalyticsPage() {
         {matches.some(m => m.auto_difficulty !== null) && (
           <section className="space-y-3">
             <div className="flex items-center gap-2">
-              <BarChart2 size={16} className="text-[#FFB800]" />
+              <BarChart2 size={16} className="text-primary" />
               <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{t('wr_by_diff', lang)}</h2>
             </div>
-            <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4">
+            <div className="bg-card border border-[#273246] rounded-2xl p-4">
               <ResponsiveContainer width="100%" height={160}>
                 <BarChart data={diffData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
@@ -304,10 +304,10 @@ export default function AnalyticsPage() {
         {xgData.length >= 3 && (
           <section className="space-y-3">
             <div className="flex items-center gap-2">
-              <Target size={16} className="text-[#FFB800]" />
+              <Target size={16} className="text-primary" />
               <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{t('xg_vs_goals', lang)}</h2>
             </div>
-            <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4">
+            <div className="bg-card border border-[#273246] rounded-2xl p-4">
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={xgData.slice(-10)}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
@@ -329,10 +329,10 @@ export default function AnalyticsPage() {
         {trendData.length >= 5 && (
           <section className="space-y-3">
             <div className="flex items-center gap-2">
-              <BarChart2 size={16} className="text-[#FFB800]" />
+              <BarChart2 size={16} className="text-primary" />
               <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{t('goals_trend', lang)}</h2>
             </div>
-            <div className="bg-[#1a1a1a] border border-white/10 rounded-2xl p-4">
+            <div className="bg-card border border-[#273246] rounded-2xl p-4">
               <ResponsiveContainer width="100%" height={180}>
                 <LineChart data={trendData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />

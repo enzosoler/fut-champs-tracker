@@ -42,12 +42,12 @@ export default function HistoryPage() {
   }
 
   const resultColor: Record<MatchResult, string> = {
-    W: 'bg-[#FFB800] text-black',
+    W: 'bg-primary text-black',
     D: 'bg-yellow-400 text-black',
     L: 'bg-red-500 text-white',
   };
   const resultBorderColor: Record<MatchResult, string> = {
-    W: 'border-[#FFB800]/30',
+    W: 'border-primary/30',
     D: 'border-yellow-400/30',
     L: 'border-red-500/30',
   };
@@ -119,7 +119,7 @@ export default function HistoryPage() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center">
+    <div className="min-h-screen bg-background flex items-center justify-center">
       <Loader2 className="animate-spin text-white" size={36} />
     </div>
   );
@@ -129,7 +129,7 @@ export default function HistoryPage() {
   const lL = t('losses', lang).charAt(0);
 
   return (
-    <div className="min-h-screen bg-[#0d0d0d] text-white p-4 md:p-8">
+    <div className="min-h-screen bg-background text-white p-4 md:p-8">
       <div className="max-w-2xl mx-auto space-y-6">
 
         <div className="flex items-center justify-between">
@@ -144,31 +144,31 @@ export default function HistoryPage() {
 
         {/* Filters */}
         <div className="flex flex-wrap gap-2">
-          <div className="flex items-center gap-1 text-xs text-gray-500">
+          <div className="flex items-center gap-1 text-xs text-[#94A3B8]">
             <Filter size={12} /> {t('filter', lang)}
           </div>
           {(['All', 'W', 'D', 'L'] as const).map(r => (
             <button key={r} onClick={() => setFilterResult(r)}
               className={`px-3 py-1 rounded-full text-xs font-semibold border transition ${
                 filterResult === r
-                  ? r === 'All' ? 'border-white/50 bg-white/10 text-white'
+                  ? r === 'All' ? 'border-[#273246]/500 bg-white/10 text-white'
                     : r === 'W' ? 'border-white bg-white/10 text-white'
                     : r === 'D' ? 'border-yellow-400 bg-yellow-400/10 text-yellow-400'
                     : 'border-red-500 bg-red-500/10 text-red-400'
-                  : 'border-white/10 text-gray-500 hover:border-white/20'
+                  : 'border-[#273246] text-[#94A3B8] hover:border-white/20'
               }`}>
               {r === 'All' ? t('all', lang) : r === 'W' ? t('wins', lang) : r === 'D' ? t('draws', lang) : t('losses', lang)}
             </button>
           ))}
           <select value={filterWeek} onChange={e => setFilterWeek(e.target.value)}
-            className="bg-[#1a1a1a] border border-white/10 rounded-full px-3 py-1 text-xs text-gray-300 focus:outline-none focus:border-white">
+            className="bg-card border border-[#273246] rounded-full px-3 py-1 text-xs text-gray-300 focus:outline-none focus:border-white">
             <option value="All">{t('all_weeks', lang)}</option>
             {weekIds.map(w => <option key={w} value={w}>{w}</option>)}
           </select>
         </div>
 
         {filtered.length === 0 ? (
-          <div className="text-center py-16 text-gray-500">
+          <div className="text-center py-16 text-[#94A3B8]">
             <p>{t('no_data', lang)}</p>
           </div>
         ) : (
@@ -186,7 +186,7 @@ export default function HistoryPage() {
                     <span className="text-red-400 font-bold">{wLo}{lL}</span>
                   </div>
                   <div className="flex-1 h-px bg-white/5" />
-                  <span className="text-xs text-gray-600">{weekMatches.length}/15</span>
+                  <span className="text-xs text-[#94A3B8]/70">{weekMatches.length}/15</span>
                 </div>
 
                 {weekMatches.map(match => {
@@ -194,17 +194,17 @@ export default function HistoryPage() {
                   const isExpanded = expandedId === match.id;
                   return (
                     <div key={match.id}
-                      className={`bg-[#1a1a1a] border rounded-2xl overflow-hidden transition ${resultBorderColor[result]}`}>
+                      className={`bg-card border rounded-2xl overflow-hidden transition ${resultBorderColor[result]}`}>
                       <div className="flex items-center gap-3 px-4 py-3">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-xs flex-shrink-0 ${resultColor[result]}`}>
                           {result}
                         </div>
                         <div className="flex items-baseline gap-1 flex-shrink-0">
                           <span className="text-xl font-black">{match.goals_me}</span>
-                          <span className="text-gray-600 font-bold">–</span>
-                          <span className="text-xl font-black text-gray-400">{match.goals_opp}</span>
+                          <span className="text-[#94A3B8]/70 font-bold">–</span>
+                          <span className="text-xl font-black text-[#94A3B8]">{match.goals_opp}</span>
                           {match.pk_me !== null && (
-                            <span className="text-xs text-gray-600 ml-1">({match.pk_me}–{match.pk_opp})</span>
+                            <span className="text-xs text-[#94A3B8]/70 ml-1">({match.pk_me}–{match.pk_opp})</span>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -215,9 +215,9 @@ export default function HistoryPage() {
                             <span className={`text-xs font-semibold ${pingColor[match.ping]}`}>{match.ping}</span>
                           </div>
                         </div>
-                        <span className="text-xs text-gray-600 flex-shrink-0">#{match.match_num}</span>
+                        <span className="text-xs text-[#94A3B8]/70 flex-shrink-0">#{match.match_num}</span>
                         <button onClick={() => setExpandedId(isExpanded ? null : match.id)}
-                          className="text-gray-600 hover:text-gray-300 transition flex-shrink-0">
+                          className="text-[#94A3B8]/70 hover:text-gray-300 transition flex-shrink-0">
                           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                         </button>
                         <button onClick={() => handleDelete(match.id)} disabled={deletingId === match.id}
@@ -227,16 +227,16 @@ export default function HistoryPage() {
                       </div>
 
                       {isExpanded && (
-                        <div className="border-t border-white/5 px-4 py-4 space-y-4">
+                        <div className="border-t border-[#273246]/50 px-4 py-4 space-y-4">
                           <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                             {match.xg_me !== null && (
                               <>
                                 <div className="flex justify-between">
-                                  <span className="text-gray-500">{t('xg_mine', lang)}</span>
+                                  <span className="text-[#94A3B8]">{t('xg_mine', lang)}</span>
                                   <span className="font-semibold text-white">{match.xg_me?.toFixed(1)}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-gray-500">{t('xg_opp', lang)}</span>
+                                  <span className="text-[#94A3B8]">{t('xg_opp', lang)}</span>
                                   <span className="font-semibold text-red-400">{match.xg_opp?.toFixed(1)}</span>
                                 </div>
                               </>
@@ -244,34 +244,34 @@ export default function HistoryPage() {
                             {match.formation_me && (
                               <>
                                 <div className="flex justify-between">
-                                  <span className="text-gray-500">{t('my_formation', lang)}</span>
+                                  <span className="text-[#94A3B8]">{t('my_formation', lang)}</span>
                                   <span className="font-semibold">{match.formation_me}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-gray-500">{t('opp_formation', lang)}</span>
+                                  <span className="text-[#94A3B8]">{t('opp_formation', lang)}</span>
                                   <span className="font-semibold">{match.formation_opp}</span>
                                 </div>
                               </>
                             )}
                             {match.possession_me !== null && (
                               <div className="flex justify-between">
-                                <span className="text-gray-500">{t('possession', lang)}</span>
+                                <span className="text-[#94A3B8]">{t('possession', lang)}</span>
                                 <span className="font-semibold">{match.possession_me}%</span>
                               </div>
                             )}
                             {match.shots_me !== null && (
                               <div className="flex justify-between">
-                                <span className="text-gray-500">{t('shots', lang)}</span>
+                                <span className="text-[#94A3B8]">{t('shots', lang)}</span>
                                 <span className="font-semibold">{match.shots_me}</span>
                               </div>
                             )}
                             <div className="flex justify-between">
-                              <span className="text-gray-500">{t('platform', lang)}</span>
+                              <span className="text-[#94A3B8]">{t('platform', lang)}</span>
                               <span className="font-semibold">{match.platform}</span>
                             </div>
                             {match.auto_difficulty !== null && (
                               <div className="flex justify-between">
-                                <span className="text-gray-500">⚡ {t('difficulty', lang)}</span>
+                                <span className="text-[#94A3B8]">⚡ {t('difficulty', lang)}</span>
                                 <span className={`font-bold ${
                                   (match.auto_difficulty ?? 5) <= 4 ? 'text-green-400' :
                                   (match.auto_difficulty ?? 5) <= 6 ? 'text-yellow-400' :
@@ -283,13 +283,13 @@ export default function HistoryPage() {
                             )}
                             {endLabel(match.match_end_type ?? null) && (
                               <div className="flex justify-between">
-                                <span className="text-gray-500">{t('how_ended', lang)}</span>
+                                <span className="text-[#94A3B8]">{t('how_ended', lang)}</span>
                                 <span className="font-semibold text-blue-400">{endLabel(match.match_end_type ?? null)}</span>
                               </div>
                             )}
                             {(match.elo_change ?? 0) !== 0 && (
                               <div className="flex justify-between">
-                                <span className="text-gray-500">ELO</span>
+                                <span className="text-[#94A3B8]">ELO</span>
                                 <span className={`font-semibold ${(match.elo_change ?? 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
                                   {(match.elo_change ?? 0) > 0 ? '+' : ''}{match.elo_change} → {match.elo_after}
                                 </span>
@@ -297,7 +297,7 @@ export default function HistoryPage() {
                             )}
                             {match.rage_quit !== 'No' && (
                               <div className="flex justify-between">
-                                <span className="text-gray-500">{t('rage_quit', lang)}</span>
+                                <span className="text-[#94A3B8]">{t('rage_quit', lang)}</span>
                                 <span className={`font-semibold ${match.rage_quit === 'Opp' ? 'text-green-400' : 'text-red-400'}`}>
                                   {match.rage_quit === 'Opp' ? t('rq_opp', lang) : t('rq_me', lang)}
                                 </span>
@@ -307,11 +307,11 @@ export default function HistoryPage() {
 
                           {match.match_players.length > 0 && (
                             <div className="space-y-2">
-                              <p className="text-xs text-gray-500 uppercase tracking-wider">{t('player_stats', lang)}</p>
+                              <p className="text-xs text-[#94A3B8] uppercase tracking-wider">{t('player_stats', lang)}</p>
                               <div className="space-y-1">
                                 {match.match_players.map(mp => (
                                   <div key={mp.id} className="flex items-center gap-2 text-sm">
-                                    <span className="text-gray-400 w-4 text-center text-xs">{mp.squad?.position?.slice(0, 2)}</span>
+                                    <span className="text-[#94A3B8] w-4 text-center text-xs">{mp.squad?.position?.slice(0, 2)}</span>
                                     <span className="flex-1 font-medium">{mp.squad?.name ?? '—'}</span>
                                     {mp.goals > 0 && <span className="text-white font-bold text-xs">{mp.goals}⚽</span>}
                                     {mp.assists > 0 && <span className="text-blue-400 font-bold text-xs">{mp.assists}🎯</span>}
@@ -324,7 +324,7 @@ export default function HistoryPage() {
                           )}
 
                           {match.notes && (
-                            <div className="bg-[#262626] rounded-xl px-3 py-2 text-sm text-gray-300 italic">
+                            <div className="bg-muted rounded-xl px-3 py-2 text-sm text-gray-300 italic">
                               {match.notes}
                             </div>
                           )}

@@ -2,14 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-
 :root {
   color-scheme: dark;
 }
 
 body {
-  background-color: #121212;
-  color: white;
+  background-color: #0B0E14;
+  color: #F1F5F9;
 }
 
 /* Remove number input arrows */
@@ -27,9 +26,18 @@ input[type="number"] {
   width: 4px;
 }
 ::-webkit-scrollbar-track {
-  background: #1a1a1a;
+  background: #141A25;
 }
 ::-webkit-scrollbar-thumb {
-  background: #333;
+  background: #273246;
   border-radius: 2px;
+}
+
+/* Hide scrollbar but allow scroll */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
