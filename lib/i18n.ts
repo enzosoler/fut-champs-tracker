@@ -208,6 +208,11 @@ const translations = {
   fill_week_id:   { pt: 'Preencha o Week ID (ex: mar15).', en: 'Fill in the WL Week (e.g. mar15).', es: 'Completa el campo Semana WL (ej: mar15).', fr: 'Renseigne la Semaine WL (ex : mar15).' },
   squad_empty_hint: { pt: 'Adicione jogadores ao seu', en: 'Add players to your', es: 'Añade jugadores a tu', fr: 'Ajoute des joueurs à ton' },
   squad_empty_hint2: { pt: 'para registrar as stats.', en: 'to log player stats.', es: 'para registrar las estadísticas.', fr: 'pour saisir les stats.' },
+
+  // ── My Overall ────────────────────────────────────────────────────────
+  my_overall:       { pt: 'Meu Overall',  en: 'My Overall',  es: 'Mi Overall',   fr: 'Mon Overall'  },
+  overall_set:      { pt: 'Definir',      en: 'Set',         es: 'Definir',      fr: 'Définir'      },
+  overall_edit:     { pt: 'Editar overall', en: 'Edit overall', es: 'Editar overall', fr: 'Modifier l\'overall' },
 } as const;
 
 type TranslationKey = keyof typeof translations;
@@ -226,3 +231,4 @@ export function tDays(lang: Language): readonly string[] {
 }
 
 export const STORAGE_KEY = 'futchamps_lang';
+export const OVERALL_KEY = 'futchamps_overall';

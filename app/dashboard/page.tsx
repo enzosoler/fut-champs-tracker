@@ -1,16 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
-import { Trophy, TrendingUp, Flame, Share2, Plus, Loader2, Target, Zap } from 'lucide-react';
+import { Trophy, TrendingUp, Flame, Share2, Plus, Loader2, Target, Zap, Pencil, Check, X } from 'lucide-react';
 import {
   Match, MatchWithPlayers, MatchPlayer, SquadPlayer, PlayerLeaderboard,
   getMatchResult, RANK_THRESHOLDS, MatchResult, WLSession
 } from '@/types';
 import { getEloTier } from '@/lib/elo';
 import { useLanguage } from '@/components/LanguageProvider';
-import { t } from '@/lib/i18n';
+import { t, OVERALL_KEY } from '@/lib/i18n';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -19,6 +19,40 @@ export default function DashboardPage() {
   const [leaderboard, setLeaderboard] = useState<PlayerLeaderboard[]>([]);
   const [wlSessions,  setWlSessions]  = useState<WLSession[]>([]);
   const [loading,     setLoading]     = useState(true);
+
+  // ── My Overall ──────────────────────────────────────────────────────────
+  const [myOverall,      setMyOverall]      = useState<string>('');
+  const [editingOverall, setEditingOverall] = useState(false);
+  const [overallDraft,   setOverallDraft]   = useState('');
+  const overallRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(OVERALL_KEY);
+      if (stored) setMyOverall(stored);
+    } catch {}
+  }, []);
+
+  function startEditOverall() {
+    setOverallDraft(myOverall);
+    setEditingOverall(true);
+    setTimeout(() => overallRef.current?.focus(), 50);
+  }
+
+  function saveOverall() {
+    const val = overallDraft.trim();
+    const num = parseInt(val, 10);
+    if (val === '' || (num >= 1 && num <= 99)) {
+      setMyOverall(val);
+      try { localStorage.setItem(OVERALL_KEY, val); } catch {}
+    }
+    setEditingOverall(false);
+  }
+
+  function cancelOverall() {
+    setEditingOverall(false);
+    setOverallDraft('');
+  }
 
   useEffect(() => {
     async function load() {
@@ -108,10 +142,48 @@ export default function DashboardPage() {
               <p className="text-sm text-gray-400">{t('week', lang)}: <span className="text-white font-semibold">{currentWeekId}</span></p>
             )}
           </div>
-          <button onClick={() => router.push('/add-match')}
-            className="flex items-center gap-2 bg-[#FFB800] text-black font-bold px-4 py-2.5 rounded-xl hover:bg-[#CC9400] transition text-sm">
-            <Plus size={16} /> {t('nav_register', lang)}
-          </button>
+          <div className="flex items-center gap-2">
+            {/* My Overall badge */}
+            {editingOverall ? (
+              <div className="flex items-center gap-1">
+                <input
+                  ref={overallRef}
+                  type="number"
+                  min={1} max={99}
+                  value={overallDraft}
+                  onChange={e => setOverallDraft(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') saveOverall(); if (e.key === 'Escape') cancelOverall(); }}
+                  className="w-14 text-center bg-[#1a1a1a] border border-[#FFB800] text-white font-black text-lg rounded-lg px-1 py-1 outline-none"
+                  placeholder="OVR"
+                />
+                <button onClick={saveOverall}   className="text-green-400 hover:text-green-300 p-1"><Check size={16} /></button>
+                <button onClick={cancelOverall} className="text-red-400   hover:text-red-300   p-1"><X     size={16} /></button>
+              </div>
+            ) : myOverall ? (
+              <button
+                onClick={startEditOverall}
+                title={t('overall_edit', lang)}
+                className="group relative flex flex-col items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-b from-[#f5c842] to-[#c89a0e] border-2 border-[#FFB800] shadow-lg hover:scale-105 transition-transform"
+              >
+                <span className="text-black font-black text-xl leading-none">{myOverall}</span>
+                <span className="text-black/70 font-bold text-[9px] tracking-widest uppercase">OVR</span>
+                <Pencil size={10} className="absolute top-1 right-1 text-black/50 group-hover:text-black/80 transition-colors" />
+              </button>
+            ) : (
+              <button
+                onClick={startEditOverall}
+                title={t('overall_set', lang)}
+                className="flex flex-col items-center justify-center w-14 h-14 rounded-xl border-2 border-dashed border-[#FFB800]/40 text-[#FFB800]/50 hover:border-[#FFB800] hover:text-[#FFB800] transition-colors gap-0.5"
+              >
+                <span className="text-[10px] font-bold leading-none">OVR</span>
+                <Plus size={14} />
+              </button>
+            )}
+            <button onClick={() => router.push('/add-match')}
+              className="flex items-center gap-2 bg-[#FFB800] text-black font-bold px-4 py-2.5 rounded-xl hover:bg-[#CC9400] transition text-sm">
+              <Plus size={16} /> {t('nav_register', lang)}
+            </button>
+          </div>
         </div>
 
         {totalMatches === 0 ? (
