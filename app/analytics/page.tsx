@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Match, getMatchResult } from '@/types';
-import { Loader2, BarChart2, Target, Clock, Swords, Crown, Lock } from 'lucide-react';
+import { Loader2, BarChart2, Target, Clock, Swords, Crown, Lock, Zap, Shield, TrendingUp } from 'lucide-react';
+import { formationStats, firstGoalImpact } from '@/lib/insights';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, LineChart, Line, Cell, Legend
@@ -35,6 +36,17 @@ export default function AnalyticsPage() {
       <p className="text-[#94A3B8]">{t('no_data', lang)}</p>
     </div>
   );
+
+  // ─── 0. Formation Performance (own formations) ───────────────────────
+  const myFormationStats = formationStats(matches).slice(0, 6);
+  const myFormChartData  = myFormationStats.map(f => ({
+    name: f.formation,
+    'Win Rate': parseFloat(f.winRate.toFixed(1)),
+    'Avg Goals': parseFloat(f.avgGoalsFor.toFixed(1)),
+  }));
+
+  // ─── 0b. First Goal Impact ────────────────────────────────────────────
+  const fgImpact = firstGoalImpact(matches);
 
   // ─── 1. XG vs Actual Goals ────────────────────────────────────────────
   const xgData = matches
@@ -150,6 +162,83 @@ export default function AnalyticsPage() {
           <h1 className="text-2xl font-black">{t('analytics_title', lang)}</h1>
           <p className="text-sm text-[#94A3B8] mt-0.5">{t('insights', lang)} {matches.length} {t('matches', lang)}</p>
         </div>
+
+        {/* ── My Formation Performance ── */}
+        {myFormChartData.length > 0 && (
+          <section className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Swords size={16} className="text-primary" />
+              <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">My Formation Performance</h2>
+            </div>
+            <div className="bg-card border border-[#273246] rounded-2xl p-4 space-y-3">
+              {/* Best/worst quick summary */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
+                  <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wide">Best</p>
+                  <p className="text-base font-black text-white">{myFormationStats[0]?.formation}</p>
+                  <p className="text-xs text-emerald-400 font-bold">{myFormationStats[0]?.winRate.toFixed(0)}% WR</p>
+                </div>
+                {myFormationStats.length > 1 && (
+                  <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3">
+                    <p className="text-[10px] text-red-400 font-bold uppercase tracking-wide">Worst</p>
+                    <p className="text-base font-black text-white">{myFormationStats[myFormationStats.length - 1]?.formation}</p>
+                    <p className="text-xs text-red-400 font-bold">{myFormationStats[myFormationStats.length - 1]?.winRate.toFixed(0)}% WR</p>
+                  </div>
+                )}
+              </div>
+              <ResponsiveContainer width="100%" height={myFormChartData.length * 36 + 20}>
+                <BarChart data={myFormChartData} layout="vertical" margin={{ left: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" horizontal={false} />
+                  <XAxis type="number" domain={[0, 100]} tick={{ fill: '#6b7280', fontSize: 10 }} tickFormatter={v => `${v}%`} />
+                  <YAxis type="category" dataKey="name" tick={{ fill: '#9ca3af', fontSize: 10 }} width={56} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="Win Rate" radius={[0, 6, 6, 0]}>
+                    {myFormChartData.map((entry, i) => (
+                      <Cell key={i} fill={entry['Win Rate'] >= 55 ? '#10B981' : entry['Win Rate'] >= 40 ? '#F59E0B' : '#EF4444'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </section>
+        )}
+
+        {/* ── First Goal Impact ── */}
+        {(fgImpact.scoredFirst + fgImpact.concededFirst) >= 5 && (
+          <section className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Zap size={16} className="text-amber-400" />
+              <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">First Goal Impact</h2>
+            </div>
+            <div className="bg-card border border-[#273246] rounded-2xl p-4 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 text-center">
+                  <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wide mb-1">Scored First</p>
+                  <p className="text-3xl font-black text-emerald-400">{fgImpact.scoredFirstWinRate.toFixed(0)}%</p>
+                  <p className="text-xs text-[#64748B] mt-1">win rate</p>
+                  <p className="text-[10px] text-[#64748B]">{fgImpact.scoredFirst} matches</p>
+                </div>
+                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-center">
+                  <p className="text-[10px] text-red-400 font-bold uppercase tracking-wide mb-1">Conceded First</p>
+                  <p className="text-3xl font-black text-red-400">{fgImpact.concededFirstWinRate.toFixed(0)}%</p>
+                  <p className="text-xs text-[#64748B] mt-1">win rate</p>
+                  <p className="text-[10px] text-[#64748B]">{fgImpact.concededFirst} matches</p>
+                </div>
+              </div>
+              {Math.abs(fgImpact.scoredFirstWinRate - fgImpact.concededFirstWinRate) > 20 && (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex items-start gap-2.5">
+                  <Zap size={13} className="text-amber-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-[#94A3B8]">
+                    {fgImpact.scoredFirstWinRate > fgImpact.concededFirstWinRate
+                      ? `Scoring first gives you a ${(fgImpact.scoredFirstWinRate - fgImpact.concededFirstWinRate).toFixed(0)}pp win rate advantage — early pressure is key.`
+                      : `Your comeback rate is stronger than average. You perform well under pressure.`
+                    }
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
 
         {/* ── Clutch stats ── */}
         <section className="space-y-3">

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
-import { Trophy, TrendingUp, Flame, Share2, Plus, Loader2, Target, Users, BarChart2, BookOpen, Zap, Star, ChevronRight } from 'lucide-react';
+import { Trophy, TrendingUp, Flame, Share2, Plus, Loader2, Target, Users, BarChart2, BookOpen, Zap, Star, ChevronRight, Lightbulb, AlertTriangle, CheckCircle, Swords, TrendingDown, Shield } from 'lucide-react';
 import {
   Match, MatchWithPlayers, PlayerLeaderboard,
   getMatchResult, RANK_THRESHOLDS, MatchResult, WLSession
@@ -11,6 +11,8 @@ import {
 import { useLanguage } from '@/components/LanguageProvider';
 import { t, ACTIVE_WL_KEY } from '@/lib/i18n';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { generateInsights, formationStats, consistencyStats, type Insight } from '@/lib/insights';
+import { SparklineChart } from '@/components/SparklineChart';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -89,6 +91,25 @@ export default function DashboardPage() {
 
   const displayName = user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? 'Player';
   const avatarUrl   = user?.user_metadata?.avatar_url ?? null;
+
+  // Enhanced analytics
+  const avgGoalsFor  = totalMatches > 0 ? (totalGoalsFor  / totalMatches).toFixed(1) : '—';
+  const avgGoalsAg   = totalMatches > 0 ? (totalGoalsAg   / totalMatches).toFixed(1) : '—';
+  const cleanSheets  = matches.filter(m => m.goals_opp === 0).length;
+  const cleanSheetRate = totalMatches > 0 ? Math.round((cleanSheets / totalMatches) * 100) : 0;
+  const topInsights  = totalMatches >= 5 ? generateInsights(matches as unknown as Match[]).slice(0, 2) : [];
+  const fStats       = totalMatches >= 9 ? formationStats(matches as unknown as Match[]) : [];
+  const cons         = totalMatches > 0 ? consistencyStats(matches as unknown as Match[]) : null;
+  // Win rate sparkline: last 20 matches, rolling 5-game windows
+  const sparkData = totalMatches >= 5 ? (() => {
+    const recent = [...matches].reverse();
+    const out: number[] = [];
+    for (let i = 4; i < Math.min(recent.length, 20); i++) {
+      const window = recent.slice(Math.max(0, i - 4), i + 1);
+      out.push(Math.round((window.filter(m => getMatchResult(m) === 'W').length / window.length) * 100));
+    }
+    return out;
+  })() : [];
 
   const resultColor: Record<MatchResult, string> = {
     W: 'bg-win/20 border-2 border-win text-win',
@@ -352,6 +373,32 @@ export default function DashboardPage() {
               </div>
             </section>
 
+            {/* Win Rate Sparkline */}
+            {sparkData.length > 0 && cons && (
+              <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base font-heading font-semibold">Win Rate Trend</h2>
+                  <span className={`text-xs font-bold flex items-center gap-1 ${cons.trend >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {cons.trend >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                    {cons.trend >= 0 ? '+' : ''}{cons.trend.toFixed(0)}pp vs avg
+                  </span>
+                </div>
+                <div className="bg-card border border-[#273246] rounded-2xl p-4">
+                  <div className="flex items-end justify-between mb-2">
+                    <div>
+                      <p className={`text-2xl font-black ${cons.last10WR >= 60 ? 'text-emerald-400' : cons.last10WR >= 40 ? 'text-amber-400' : 'text-red-400'}`}>{cons.last10WR.toFixed(0)}%</p>
+                      <p className="text-xs text-[#64748B]">Last 10 matches</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-base font-bold text-[#94A3B8]">{winRate}%</p>
+                      <p className="text-xs text-[#64748B]">All time</p>
+                    </div>
+                  </div>
+                  <SparklineChart data={sparkData} color={cons.trend >= 0 ? '#10B981' : '#F59E0B'} />
+                </div>
+              </section>
+            )}
+
             {/* Rank Progress */}
             {weekPlayed > 0 && (
               <section className="space-y-3">
@@ -411,6 +458,75 @@ export default function DashboardPage() {
               </div>
             </section>
 
+            {/* Insights Preview */}
+            {topInsights.length > 0 && (
+              <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-base font-heading font-semibold flex items-center gap-2">
+                    <Lightbulb size={16} className="text-amber-400" />
+                    Key Insights
+                  </h2>
+                  <button onClick={() => router.push('/insights')} className="text-xs font-bold text-primary">
+                    View All →
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {topInsights.map(insight => {
+                    const color = insight.severity === 'critical' ? 'border-red-500/30 bg-red-500/5' : insight.severity === 'warning' ? 'border-amber-500/30 bg-amber-500/5' : 'border-emerald-500/30 bg-emerald-500/5';
+                    const textColor = insight.severity === 'critical' ? 'text-red-400' : insight.severity === 'warning' ? 'text-amber-400' : 'text-emerald-400';
+                    const Icon = insight.severity === 'positive' ? CheckCircle : AlertTriangle;
+                    return (
+                      <div key={insight.id} onClick={() => router.push('/insights')} className={`rounded-2xl border ${color} p-3.5 flex items-start gap-3 cursor-pointer hover:opacity-80 transition`}>
+                        <Icon size={14} className={`${textColor} mt-0.5 flex-shrink-0`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-white leading-snug">{insight.title}</p>
+                          <p className="text-xs text-[#64748B] mt-0.5 line-clamp-2">{insight.description}</p>
+                        </div>
+                        {insight.metricValue && <span className={`text-xs font-black font-mono flex-shrink-0 ${textColor}`}>{insight.metricValue}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* Best Formation */}
+            {fStats.length > 0 && (
+              <section className="space-y-3">
+                <h2 className="text-base font-heading font-semibold flex items-center gap-2">
+                  <Swords size={16} className="text-primary" />
+                  Best Formation
+                </h2>
+                <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-4 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
+                    <span className="text-sm font-black text-primary">{fStats[0].formation}</span>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className={`text-xl font-black ${fStats[0].winRate >= 50 ? 'text-emerald-400' : 'text-amber-400'}`}>{fStats[0].winRate.toFixed(0)}%</p>
+                      <p className="text-xs text-[#64748B]">win rate · {fStats[0].total} matches</p>
+                    </div>
+                    <div className="flex gap-3 mt-1 text-xs text-[#64748B]">
+                      <span>⚽ {fStats[0].avgGoalsFor.toFixed(1)} avg scored</span>
+                      <span>🛡 {fStats[0].avgGoalsAgainst.toFixed(1)} avg conceded</span>
+                    </div>
+                  </div>
+                  <button onClick={() => router.push('/analytics')} className="text-primary text-xs font-bold flex-shrink-0">→</button>
+                </div>
+                {fStats.length > 1 && (
+                  <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                    {fStats.slice(1, 4).map(f => (
+                      <div key={f.formation} className="flex-shrink-0 bg-card border border-[#273246] rounded-xl px-3 py-2 text-center min-w-[80px]">
+                        <p className="text-xs font-bold text-white">{f.formation}</p>
+                        <p className={`text-sm font-black ${f.winRate >= 50 ? 'text-emerald-400' : 'text-amber-400'}`}>{f.winRate.toFixed(0)}%</p>
+                        <p className="text-[10px] text-[#64748B]">{f.total} games</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
+
             {/* Player leaderboard */}
             {leaderboard.length > 0 && (
               <section className="space-y-3">
@@ -462,10 +578,24 @@ export default function DashboardPage() {
                 <div className="bg-card border border-[#273246] rounded-2xl p-4">
                   <p className="text-2xl font-heading font-bold text-win">{totalGoalsFor}</p>
                   <p className="text-xs text-[#94A3B8] mt-1">{t('goals_scored', lang)}</p>
+                  <p className="text-xs text-[#64748B] mt-0.5">avg {avgGoalsFor}/game</p>
                 </div>
                 <div className="bg-card border border-[#273246] rounded-2xl p-4">
                   <p className="text-2xl font-heading font-bold text-loss">{totalGoalsAg}</p>
                   <p className="text-xs text-[#94A3B8] mt-1">{t('goals_conceded', lang)}</p>
+                  <p className="text-xs text-[#64748B] mt-0.5">avg {avgGoalsAg}/game</p>
+                </div>
+                <div className="bg-card border border-[#273246] rounded-2xl p-4 col-span-2 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                      <Shield size={15} className="text-blue-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">Clean Sheets</p>
+                      <p className="text-xs text-[#64748B]">{cleanSheets} in {totalMatches} matches</p>
+                    </div>
+                  </div>
+                  <p className={`text-2xl font-heading font-bold ${cleanSheetRate >= 25 ? 'text-blue-400' : 'text-[#94A3B8]'}`}>{cleanSheetRate}%</p>
                 </div>
               </div>
             </section>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { LayoutDashboard, PlusCircle, History, BarChart2, Users, Trophy, UserSearch, Crown } from "lucide-react";
+import { LayoutDashboard, PlusCircle, History, BarChart2, Users, Trophy, Lightbulb, Target, Crown } from "lucide-react";
 import { useLanguage } from "@/components/LanguageProvider";
 import { t, ACTIVE_WL_KEY } from "@/lib/i18n";
 import { usePlan } from "@/hooks/usePlan";
@@ -20,14 +20,16 @@ export default function BottomNav() {
     } catch {}
   }, []);
 
+  // Core 6 nav items — Insights & Goals replace Players in bottom nav
+  // Players/Opponents/Packs still accessible via History page
   const navItems = [
-    { labelKey: 'nav_dashboard'  as const, icon: LayoutDashboard, href: "/dashboard",      premium: false },
-    { labelKey: 'nav_wl'         as const, icon: Trophy,           href: "/weekend-league", premium: false },
-    { labelKey: 'nav_register'   as const, icon: PlusCircle,       href: "/add-match",      premium: false },
-    { labelKey: 'nav_history'    as const, icon: History,          href: "/history",        premium: false },
-    { labelKey: 'nav_squad'      as const, icon: Users,            href: "/squad",          premium: false },
-    { labelKey: 'nav_analytics'  as const, icon: BarChart2,        href: "/analytics",      premium: true  },
-    { labelKey: 'nav_players'    as const, icon: UserSearch,       href: "/players",        premium: false },
+    { label: 'Home',     icon: LayoutDashboard, href: "/dashboard",      premium: false },
+    { label: 'WL',       icon: Trophy,          href: "/weekend-league", premium: false },
+    { label: 'Log',      icon: PlusCircle,      href: "/add-match",      premium: false },
+    { label: 'History',  icon: History,         href: "/history",        premium: false },
+    { label: 'Insights', icon: Lightbulb,       href: "/insights",       premium: false },
+    { label: 'Goals',    icon: Target,          href: "/goals",          premium: false },
+    { label: 'Analytics',icon: BarChart2,       href: "/analytics",      premium: true  },
   ];
 
   if (pathname === "/login") return null;
@@ -38,29 +40,37 @@ export default function BottomNav() {
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           const isWL     = item.href === "/weekend-league";
+          const isLog    = item.href === "/add-match";
           const showLock = item.premium && !isPremium;
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`relative flex flex-1 flex-col items-center gap-1 py-3 text-[10px] font-medium transition-colors ${
+              className={`relative flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[9px] font-medium transition-colors ${
                 isActive ? "text-primary" : "text-[#94A3B8] hover:text-white"
               }`}
             >
-              <div className="relative">
-                <item.icon size={19} strokeWidth={isActive ? 2.5 : 1.8} />
-                {showLock && (
-                  <Crown size={8} className="absolute -top-1 -right-1.5 text-amber-400" />
-                )}
-              </div>
-              {t(item.labelKey, lang)}
+              {/* Log button gets special treatment */}
+              {isLog ? (
+                <div className={`w-9 h-9 rounded-2xl flex items-center justify-center shadow-lg ${isActive ? 'bg-primary' : 'bg-primary/80 hover:bg-primary'}`}>
+                  <item.icon size={18} strokeWidth={2.5} className="text-white" />
+                </div>
+              ) : (
+                <div className="relative">
+                  <item.icon size={18} strokeWidth={isActive ? 2.5 : 1.8} />
+                  {showLock && (
+                    <Crown size={7} className="absolute -top-1 -right-1 text-amber-400" />
+                  )}
+                </div>
+              )}
+              <span className={isLog ? 'text-primary font-bold' : ''}>{item.label}</span>
               {/* Active WL indicator dot */}
               {isWL && hasActiveWL && !isActive && (
-                <span className="absolute top-2 right-[calc(50%-14px)] w-2 h-2 bg-win rounded-full" />
+                <span className="absolute top-1.5 right-[calc(50%-12px)] w-1.5 h-1.5 bg-win rounded-full" />
               )}
               {/* Active indicator bar */}
-              {isActive && (
-                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-primary rounded-full" />
+              {isActive && !isLog && (
+                <span className="absolute top-0 left-1/2 -translate-x-1/2 w-5 h-0.5 bg-primary rounded-full" />
               )}
             </Link>
           );

@@ -476,6 +476,46 @@ export default function AddMatchForm() {
           )}
         </div>
 
+        {/* Quick Tags */}
+        <div className="space-y-2">
+          <label className="text-xs text-[#94A3B8] uppercase tracking-wider">Quick Tags</label>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: 'tilted',       label: '😤 Tilted',              color: 'border-red-500/40 text-red-400    bg-red-500/10'      },
+              { id: 'dominated',    label: '💪 Dominated & Lost',    color: 'border-amber-500/40 text-amber-400 bg-amber-500/10'   },
+              { id: 'early_goal',   label: '⚡ Conceded Early',     color: 'border-orange-500/40 text-orange-400 bg-orange-500/10'},
+              { id: 'comeback',     label: '🔄 Comeback Win',        color: 'border-green-500/40 text-green-400 bg-green-500/10'   },
+              { id: 'rage_quit_opp',label: '🏃 Opp Rage Quit',      color: 'border-purple-500/40 text-purple-400 bg-purple-500/10'},
+              { id: 'played_bad',   label: '👎 Played Poorly',       color: 'border-red-500/40 text-red-400    bg-red-500/10'      },
+              { id: 'controlled',   label: '🎯 Controlled Match',    color: 'border-blue-500/40 text-blue-400   bg-blue-500/10'    },
+              { id: 'missed_chances',label:'😬 Missed Big Chances', color: 'border-amber-500/40 text-amber-400 bg-amber-500/10'   },
+              { id: 'lag',          label: '📡 Bad Connection',      color: 'border-slate-500/40 text-slate-400 bg-slate-500/10'  },
+              { id: 'clutch',       label: '💎 Clutch Win',          color: 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10'},
+            ].map(tag => {
+              const isSelected = notes.includes(`[${tag.id}]`);
+              return (
+                <button
+                  key={tag.id}
+                  type="button"
+                  onClick={() => {
+                    const marker = `[${tag.id}]`;
+                    if (isSelected) {
+                      setNotes(prev => prev.replace(marker, '').replace(/\n\n/g, '\n').trim());
+                    } else {
+                      setNotes(prev => prev ? `${prev}\n${marker}` : marker);
+                    }
+                  }}
+                  className={`text-xs font-semibold px-3 py-1.5 rounded-full border transition-all ${
+                    isSelected ? tag.color + ' opacity-100 scale-105' : 'border-[#273246] text-[#94A3B8] bg-card hover:border-[#364055]'
+                  }`}
+                >
+                  {tag.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Notes */}
         <div className="space-y-1">
           <label className="text-xs text-[#94A3B8] uppercase tracking-wider">{t('notes', lang)}</label>

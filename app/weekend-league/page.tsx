@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
-import { Trophy, Plus, Loader2, Play, Flag } from 'lucide-react';
+import { Trophy, Plus, Loader2, Play, Flag, TrendingUp, Clock, Target } from 'lucide-react';
 import { Match, WLSession, getMatchResult, MatchResult, RANK_THRESHOLDS } from '@/types';
 import { useLanguage } from '@/components/LanguageProvider';
 import { t, ACTIVE_WL_KEY } from '@/lib/i18n';
+import { projectFinalRank, getRankFromWins } from '@/lib/insights';
 
 const MAX_MATCHES = 15;
 
@@ -247,6 +248,62 @@ export default function WeekendLeaguePage() {
                       {activePlayed + i + 1}
                     </div>
                   ))}
+                </div>
+              </section>
+            )}
+
+            {/* Block Performance */}
+            {activePlayed >= 5 && (
+              <section className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Clock size={14} className="text-primary" />
+                  <h3 className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider">Performance by Block</h3>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { label: '1–5',   matches: activeMatches.slice(0, 5)  },
+                    { label: '6–10',  matches: activeMatches.slice(5, 10)  },
+                    { label: '11–15', matches: activeMatches.slice(10, 15) },
+                  ].map(block => {
+                    const played = block.matches.length;
+                    if (played === 0) return (
+                      <div key={block.label} className="bg-card border border-[#273246] rounded-xl p-3 text-center opacity-40">
+                        <p className="text-[10px] text-[#64748B] uppercase font-bold">{block.label}</p>
+                        <p className="text-sm text-[#64748B] mt-1">—</p>
+                      </div>
+                    );
+                    const bWins = block.matches.filter(m => getMatchResult(m) === 'W').length;
+                    const wr = Math.round((bWins / played) * 100);
+                    return (
+                      <div key={block.label} className="bg-card border border-[#273246] rounded-xl p-3 text-center">
+                        <p className="text-[10px] text-[#64748B] uppercase font-bold tracking-wide">{block.label}</p>
+                        <p className={`text-xl font-black mt-1 ${wr >= 60 ? 'text-emerald-400' : wr >= 40 ? 'text-amber-400' : 'text-red-400'}`}>
+                          {wr}%
+                        </p>
+                        <p className="text-[10px] text-[#64748B]">{bWins}W / {played}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
+            {/* Rank Projection */}
+            {activePlayed >= 3 && (
+              <section className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Target size={14} className="text-primary" />
+                  <h3 className="text-xs font-bold text-[#94A3B8] uppercase tracking-wider">Projected Finish</h3>
+                </div>
+                <div className="bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20 rounded-2xl p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-[#64748B]">At current pace</p>
+                    <p className="text-2xl font-black text-white">{getRankFromWins(projectFinalRank(activeWins, activePlayed, MAX_MATCHES))}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-[#64748B]">Projected wins</p>
+                    <p className="text-2xl font-black text-primary">~{projectFinalRank(activeWins, activePlayed, MAX_MATCHES)}</p>
+                  </div>
                 </div>
               </section>
             )}
