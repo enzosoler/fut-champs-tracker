@@ -3,16 +3,18 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Match, getMatchResult } from '@/types';
-import { Loader2, BarChart2, Target, Clock, Swords } from 'lucide-react';
+import { Loader2, BarChart2, Target, Clock, Swords, Crown, Lock } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, LineChart, Line, Cell, Legend
 } from 'recharts';
 import { useLanguage } from '@/components/LanguageProvider';
 import { t, tDays } from '@/lib/i18n';
+import { usePlan } from '@/hooks/usePlan';
 
 export default function AnalyticsPage() {
   const { lang } = useLanguage();
+  const { isPremium } = usePlan();
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -300,52 +302,84 @@ export default function AnalyticsPage() {
           </section>
         )}
 
-        {/* ── xG vs Goals ── */}
+        {/* ── xG vs Goals (Premium) ── */}
         {xgData.length >= 3 && (
-          <section className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Target size={16} className="text-primary" />
-              <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{t('xg_vs_goals', lang)}</h2>
+          isPremium ? (
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Target size={16} className="text-primary" />
+                <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{t('xg_vs_goals', lang)}</h2>
+              </div>
+              <div className="bg-card border border-[#273246] rounded-2xl p-4">
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={xgData.slice(-10)}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
+                    <XAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 10 }} />
+                    <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Bar dataKey="xgMe"    name={t('xg_mine', lang)}   fill="#FFB80060" />
+                    <Bar dataKey="goalsMe" name={t('my_goals', lang)}  fill={GOLD} />
+                    <Bar dataKey="xgOpp"   name={t('xg_opp', lang)}    fill="#ef444460" />
+                    <Bar dataKey="goalsOpp" name={t('opp_goals', lang)} fill={RED} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </section>
+          ) : (
+            <div className="bg-card border border-amber-500/20 rounded-2xl p-5 flex flex-col items-center gap-3 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                <Lock size={20} className="text-amber-400" />
+              </div>
+              <div>
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <Crown size={12} className="text-amber-400" />
+                  <span className="text-xs font-bold text-amber-400 uppercase tracking-wide">Premium Feature</span>
+                </div>
+                <p className="font-semibold text-white text-sm">xG Analytics</p>
+                <p className="text-xs text-[#64748B] mt-0.5">Compare expected goals vs actual performance</p>
+              </div>
             </div>
-            <div className="bg-card border border-[#273246] rounded-2xl p-4">
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={xgData.slice(-10)}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                  <XAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 10 }} />
-                  <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="xgMe"    name={t('xg_mine', lang)}   fill="#FFB80060" />
-                  <Bar dataKey="goalsMe" name={t('my_goals', lang)}  fill={GOLD} />
-                  <Bar dataKey="xgOpp"   name={t('xg_opp', lang)}    fill="#ef444460" />
-                  <Bar dataKey="goalsOpp" name={t('opp_goals', lang)} fill={RED} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
+          )
         )}
 
-        {/* ── Goals per game trend ── */}
+        {/* ── Goals per game trend (Premium) ── */}
         {trendData.length >= 5 && (
-          <section className="space-y-3">
-            <div className="flex items-center gap-2">
-              <BarChart2 size={16} className="text-primary" />
-              <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{t('goals_trend', lang)}</h2>
+          isPremium ? (
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <BarChart2 size={16} className="text-primary" />
+                <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">{t('goals_trend', lang)}</h2>
+              </div>
+              <div className="bg-card border border-[#273246] rounded-2xl p-4">
+                <ResponsiveContainer width="100%" height={180}>
+                  <LineChart data={trendData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
+                    <XAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 10 }} />
+                    <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                    <Line type="monotone" dataKey={avgScoredKey}   stroke={GOLD} strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey={avgConcededKey} stroke={RED}  strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </section>
+          ) : (
+            <div className="bg-card border border-amber-500/20 rounded-2xl p-5 flex flex-col items-center gap-3 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                <Lock size={20} className="text-amber-400" />
+              </div>
+              <div>
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <Crown size={12} className="text-amber-400" />
+                  <span className="text-xs font-bold text-amber-400 uppercase tracking-wide">Premium Feature</span>
+                </div>
+                <p className="font-semibold text-white text-sm">Goals Trend</p>
+                <p className="text-xs text-[#64748B] mt-0.5">Track scoring patterns over time</p>
+              </div>
             </div>
-            <div className="bg-card border border-[#273246] rounded-2xl p-4">
-              <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
-                  <XAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 10 }} />
-                  <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Line type="monotone" dataKey={avgScoredKey}   stroke={GOLD} strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey={avgConcededKey} stroke={RED}  strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </section>
+          )
         )}
 
       </div>

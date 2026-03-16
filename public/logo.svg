@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1a1f2e"/>
+      <stop offset="100%" stop-color="#0d1117"/>
+    </linearGradient>
+    <linearGradient id="shield" x1="256" y1="50" x2="256" y2="460" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#a5b4fc"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="softglow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="16" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.39  0 0 0 0 0.40  0 0 0 0 0.95  0 0 0 0.4 0" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background circle -->
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- Subtle grid lines -->
+  <line x1="256" y1="0" x2="256" y2="512" stroke="#ffffff" stroke-opacity="0.03" stroke-width="1"/>
+  <line x1="0" y1="256" x2="512" y2="256" stroke="#ffffff" stroke-opacity="0.03" stroke-width="1"/>
+
+  <!-- Outer glow circle -->
+  <circle cx="256" cy="230" r="155" fill="#6366f1" fill-opacity="0.06"/>
+
+  <!-- Shield shape -->
+  <path d="M256 68 L380 118 L380 252 C380 330 320 388 256 420 C192 388 132 330 132 252 L132 118 Z"
+        fill="url(#shield)" filter="url(#softglow)" opacity="0.15"/>
+
+  <!-- Shield border -->
+  <path d="M256 68 L380 118 L380 252 C380 330 320 388 256 420 C192 388 132 330 132 252 L132 118 Z"
+        fill="none" stroke="url(#shield)" stroke-width="3" opacity="0.9"/>
+
+  <!-- Inner shield fill -->
+  <path d="M256 90 L362 133 L362 250 C362 318 308 371 256 400 C204 371 150 318 150 250 L150 133 Z"
+        fill="#6366f1" fill-opacity="0.08"/>
+
+  <!-- Horizontal divider line on shield -->
+  <line x1="150" y1="210" x2="362" y2="210" stroke="#818cf8" stroke-width="1.5" stroke-opacity="0.4"/>
+
+  <!-- Soccer ball in center -->
+  <g transform="translate(256, 225)" filter="url(#glow)">
+    <!-- Ball circle -->
+    <circle cx="0" cy="0" r="62" fill="#0d1117" stroke="#6366f1" stroke-width="2.5"/>
+
+    <!-- Pentagon pattern (simplified soccer ball) -->
+    <!-- Central pentagon -->
+    <polygon points="0,-28 26.6,-8.7 16.4,22.7 -16.4,22.7 -26.6,-8.7"
+             fill="#6366f1" fill-opacity="0.9" stroke="#1a1f2e" stroke-width="1.5"/>
+
+    <!-- Surrounding hexagon patches -->
+    <polygon points="0,-28 10,-50 -10,-50"
+             fill="none" stroke="#6366f1" stroke-width="1.5" stroke-opacity="0.5"/>
+    <polygon points="26.6,-8.7 48,-18 42,-40"
+             fill="none" stroke="#6366f1" stroke-width="1.5" stroke-opacity="0.5"/>
+    <polygon points="16.4,22.7 38,36 50,16"
+             fill="none" stroke="#6366f1" stroke-width="1.5" stroke-opacity="0.5"/>
+    <polygon points="-16.4,22.7 -38,36 -50,16"
+             fill="none" stroke="#6366f1" stroke-width="1.5" stroke-opacity="0.5"/>
+    <polygon points="-26.6,-8.7 -48,-18 -42,-40"
+             fill="none" stroke="#6366f1" stroke-width="1.5" stroke-opacity="0.5"/>
+
+    <!-- Ball shine -->
+    <ellipse cx="-18" cy="-28" rx="12" ry="8" fill="white" fill-opacity="0.08" transform="rotate(-20)"/>
+  </g>
+
+  <!-- Lightning bolt accent (speed/performance) -->
+  <path d="M 268 152 L 248 190 L 260 190 L 244 225"
+        stroke="#a5b4fc" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+        fill="none" opacity="0" />
+
+  <!-- Stars at bottom of shield (championship) -->
+  <g transform="translate(256, 378)" fill="#fbbf24" opacity="0.9">
+    <polygon points="0,-7 1.6,-2.2 6.7,-2.2 2.7,0.9 4.1,5.7 0,2.8 -4.1,5.7 -2.7,0.9 -6.7,-2.2 -1.6,-2.2" transform="translate(-24,0) scale(0.85)"/>
+    <polygon points="0,-7 1.6,-2.2 6.7,-2.2 2.7,0.9 4.1,5.7 0,2.8 -4.1,5.7 -2.7,0.9 -6.7,-2.2 -1.6,-2.2"/>
+    <polygon points="0,-7 1.6,-2.2 6.7,-2.2 2.7,0.9 4.1,5.7 0,2.8 -4.1,5.7 -2.7,0.9 -6.7,-2.2 -1.6,-2.2" transform="translate(24,0) scale(0.85)"/>
+  </g>
+
+  <!-- Bottom text area -->
+  <rect x="130" y="430" width="252" height="40" rx="8" fill="#6366f1" fill-opacity="0.12"/>
+  <text x="256" y="458" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="800"
+        fill="#a5b4fc" text-anchor="middle" letter-spacing="3">TRACKER</text>
+</svg>

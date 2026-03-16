@@ -8,6 +8,7 @@ import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { useLanguage } from '@/components/LanguageProvider';
 import { LANGUAGES } from '@/lib/i18n';
 import { usePathname } from 'next/navigation';
+import NotificationBell from '@/components/NotificationBell';
 
 export default function Header() {
   const router = useRouter();
@@ -35,9 +36,10 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-20 bg-background/90 backdrop-blur-md border-b border-[#273246]">
       <div className="max-w-2xl mx-auto px-4 h-12 flex items-center justify-between">
-        <span className="text-xs font-semibold text-[#94A3B8] uppercase tracking-widest">
-          FC 26 Tracker
-        </span>
+        <div className="flex items-center gap-2">
+          <img src="/logo.svg" alt="FC Tracker" className="w-7 h-7 rounded-lg" />
+          <span className="text-sm font-bold text-white tracking-wide">FC Tracker</span>
+        </div>
 
         <div className="flex items-center gap-2">
           {/* Language switcher */}
@@ -57,6 +59,8 @@ export default function Header() {
               </button>
             ))}
           </div>
+
+          {user && <NotificationBell />}
 
           {user && (
             <button

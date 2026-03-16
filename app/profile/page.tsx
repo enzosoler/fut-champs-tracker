@@ -6,13 +6,16 @@ import { supabase } from '@/lib/supabaseClient';
 import {
   UserCircle, Camera, Check, Loader2, LogOut,
   Mail, KeyRound, ChevronLeft, Pencil, X,
-  ShieldCheck, ShieldOff, QrCode, AtSign
+  ShieldCheck, ShieldOff, QrCode, AtSign,
+  Crown, Zap, Star
 } from 'lucide-react';
+import { usePlan } from '@/hooks/usePlan';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export default function ProfilePage() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { plan, isPremium } = usePlan();
 
   const [user,             setUser]             = useState<SupabaseUser | null>(null);
   const [loading,          setLoading]          = useState(true);
@@ -493,14 +496,60 @@ export default function ProfilePage() {
           )}
         </div>
 
+        {/* Plan */}
+        <div className={`rounded-2xl p-5 border ${isPremium ? 'bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/30' : 'bg-card border-[#273246]'}`}>
+          <p className="text-xs font-bold text-[#94A3B8] uppercase tracking-widest mb-3">Plan</p>
+          {isPremium ? (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
+                  <Crown size={18} className="text-amber-400" />
+                </div>
+                <div>
+                  <p className="font-bold text-amber-400 text-sm">Premium</p>
+                  <p className="text-xs text-[#94A3B8]">All features unlocked</p>
+                </div>
+              </div>
+              <span className="text-xs bg-amber-500/15 border border-amber-500/30 text-amber-400 font-bold px-2.5 py-1 rounded-full">ACTIVE</span>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#273246] border border-[#273246] flex items-center justify-center">
+                    <Star size={18} className="text-[#94A3B8]" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-white text-sm">Free Plan</p>
+                    <p className="text-xs text-[#94A3B8]">Limited features</p>
+                  </div>
+                </div>
+                <span className="text-xs bg-[#273246] text-[#94A3B8] font-bold px-2.5 py-1 rounded-full">FREE</span>
+              </div>
+              <div className="bg-background/40 rounded-xl p-3 space-y-1.5">
+                {['Advanced xG Analytics', 'Full Squad Stats', 'Player Comparison', 'Export Data'].map(f => (
+                  <div key={f} className="flex items-center gap-2 text-xs text-[#64748B]">
+                    <Crown size={10} className="text-amber-400/60 flex-shrink-0" />
+                    <span>{f}</span>
+                    <span className="ml-auto text-amber-400/60 font-bold text-[10px]">PRO</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-center text-[#64748B]">
+                Contact an admin to upgrade your plan.
+              </p>
+            </div>
+          )}
+        </div>
+
         {/* Account info */}
         <div className="bg-card border border-[#273246] rounded-2xl p-5">
-          <p className="text-xs font-bold text-[#94A3B8] uppercase tracking-widest mb-3">Conta</p>
+          <p className="text-xs font-bold text-[#94A3B8] uppercase tracking-widest mb-3">Account</p>
           <div className="space-y-2 text-sm text-[#94A3B8]">
             <div className="flex justify-between">
-              <span>Membro desde</span>
+              <span>Member since</span>
               <span className="text-white font-medium">
-                {user?.created_at ? new Date(user.created_at).toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }) : '—'}
+                {user?.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—'}
               </span>
             </div>
             <div className="flex justify-between">
@@ -515,7 +564,7 @@ export default function ProfilePage() {
           onClick={handleLogout}
           className="w-full flex items-center justify-center gap-2 bg-loss/10 hover:bg-loss/20 border border-loss/30 text-loss font-bold py-3.5 rounded-xl transition"
         >
-          <LogOut size={16} /> Sair da conta
+          <LogOut size={16} /> Sign out
         </button>
       </div>
     </div>

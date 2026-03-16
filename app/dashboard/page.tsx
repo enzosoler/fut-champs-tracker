@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
-import { Trophy, TrendingUp, Flame, Share2, Plus, Loader2, Target } from 'lucide-react';
+import { Trophy, TrendingUp, Flame, Share2, Plus, Loader2, Target, Users, BarChart2, BookOpen, Zap, Star, ChevronRight } from 'lucide-react';
 import {
   Match, MatchWithPlayers, PlayerLeaderboard,
   getMatchResult, RANK_THRESHOLDS, MatchResult, WLSession
@@ -148,20 +148,87 @@ export default function DashboardPage() {
       <div className="px-4 space-y-8 pb-6">
 
         {totalMatches === 0 ? (
-          <div className="text-center py-20 space-y-5">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto">
-              <Trophy className="text-primary" size={28} />
+          <div className="space-y-6 pb-4">
+            {/* Hero empty state */}
+            <div className="relative rounded-2xl overflow-hidden border border-primary/30 bg-card" style={{ boxShadow: '0 0 40px -15px rgba(99,102,241,0.4)' }}>
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 pointer-events-none" />
+              <div className="relative p-6 text-center space-y-4">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center mx-auto shadow-lg shadow-primary/30">
+                  <Trophy size={30} className="text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-heading font-bold text-white">Welcome to FC Tracker</h2>
+                  <p className="text-sm text-[#94A3B8] mt-2 leading-relaxed">Track every FUT Champions match, analyze your performance, and climb the ranks.</p>
+                </div>
+                <button
+                  onClick={() => router.push('/add-match')}
+                  className="bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white font-bold px-8 py-3.5 rounded-xl transition shadow-lg shadow-primary/30 flex items-center gap-2 mx-auto"
+                >
+                  <Plus size={16} /> Log Your First Match
+                </button>
+                <p className="text-xs text-[#94A3B8]/60">Takes less than 30 seconds</p>
+              </div>
             </div>
-            <div>
-              <p className="text-lg font-heading font-semibold">{t('no_data', lang)}</p>
-              <p className="text-sm text-[#94A3B8] mt-1">Start tracking your matches</p>
-            </div>
-            <button
-              onClick={() => router.push('/add-match')}
-              className="bg-primary hover:bg-primary-dark text-white font-semibold px-6 py-3 rounded-xl transition shadow-lg shadow-primary/20 flex items-center gap-2 mx-auto"
-            >
-              <Plus size={16} /> {t('register_first', lang)}
-            </button>
+
+            {/* Feature cards */}
+            <section className="space-y-3">
+              <h2 className="text-sm font-heading font-bold text-[#94A3B8] uppercase tracking-wider">What you can track</h2>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { icon: BarChart2, color: 'text-primary', bg: 'bg-primary/10', title: 'Win Rate & Streaks', desc: 'Track W/D/L trends over time' },
+                  { icon: Users, color: 'text-accent', bg: 'bg-accent/10', title: 'Squad Stats', desc: 'Goals, assists & saves per player' },
+                  { icon: Trophy, color: 'text-draw', bg: 'bg-draw/10', title: 'WL Rankings', desc: 'Monitor your rank progression' },
+                  { icon: Zap, color: 'text-win', bg: 'bg-win/10', title: 'xG Analytics', desc: 'Shot quality & efficiency data' },
+                ].map(({ icon: Icon, color, bg, title, desc }) => (
+                  <div key={title} className="bg-card border border-[#273246] rounded-2xl p-4 space-y-2">
+                    <div className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center`}>
+                      <Icon size={15} className={color} />
+                    </div>
+                    <p className="text-sm font-semibold text-white leading-tight">{title}</p>
+                    <p className="text-xs text-[#94A3B8] leading-snug">{desc}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Quick start steps */}
+            <section className="space-y-3">
+              <h2 className="text-sm font-heading font-bold text-[#94A3B8] uppercase tracking-wider">Quick Start</h2>
+              <div className="bg-card border border-[#273246] rounded-2xl divide-y divide-[#273246]">
+                {[
+                  { step: 1, title: 'Add your squad', desc: 'Set up your FUT players', href: '/squad', done: false },
+                  { step: 2, title: 'Start a Weekend League', desc: 'Begin tracking your WL session', href: '/weekend-league', done: false },
+                  { step: 3, title: 'Log your first match', desc: 'Record score, players & xG', href: '/add-match', done: false },
+                  { step: 4, title: 'Check your analytics', desc: 'Discover your performance trends', href: '/analytics', done: false },
+                ].map(({ step, title, desc, href }) => (
+                  <button key={step} onClick={() => router.push(href)} className="w-full flex items-center gap-4 px-4 py-3.5 hover:bg-[#1a2333] transition text-left">
+                    <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center flex-shrink-0">
+                      <span className="text-xs font-bold text-primary">{step}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-white">{title}</p>
+                      <p className="text-xs text-[#94A3B8]">{desc}</p>
+                    </div>
+                    <ChevronRight size={14} className="text-[#94A3B8] flex-shrink-0" />
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            {/* WL rank reference */}
+            <section className="space-y-3">
+              <h2 className="text-sm font-heading font-bold text-[#94A3B8] uppercase tracking-wider">FUT Champions Ranks</h2>
+              <div className="bg-card border border-[#273246] rounded-2xl p-4">
+                <div className="grid grid-cols-5 gap-1.5">
+                  {RANK_THRESHOLDS.map(r => (
+                    <div key={r.rank} className="p-1.5 rounded-lg border border-[#273246] text-center">
+                      <p className="text-xs font-bold text-[#94A3B8]">{r.wins}W</p>
+                      <p className="text-[9px] text-[#475569] mt-0.5">{r.rank.replace('Elite', 'E').replace('Top ', 'T')}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
           </div>
         ) : (
           <>
