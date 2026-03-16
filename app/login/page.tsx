@@ -5,25 +5,6 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { Mail, Lock, Loader2, ShieldCheck, Eye, EyeOff, KeyRound } from "lucide-react";
 
-/* ── SVG icons for OAuth providers ── */
-function GoogleIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-      <path fill="#4285F4" d="M47.5 24.5c0-1.6-.1-3.2-.4-4.7H24v9h13.1c-.6 3-2.3 5.5-4.8 7.2v6h7.7c4.5-4.1 7.5-10.2 7.5-17.5z"/>
-      <path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.7-6c-2.2 1.5-5 2.3-8.2 2.3-6.3 0-11.6-4.2-13.5-9.9H2.6v6.2C6.5 42.8 14.7 48 24 48z"/>
-      <path fill="#FBBC05" d="M10.5 28.6A14.5 14.5 0 0 1 10.5 19.4v-6.2H2.6A24 24 0 0 0 0 24c0 3.9.9 7.5 2.6 10.8l7.9-6.2z"/>
-      <path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.9 2.5 30.4 0 24 0 14.7 0 6.5 5.2 2.6 13.2l7.9 6.2C12.4 13.7 17.7 9.5 24 9.5z"/>
-    </svg>
-  );
-}
-
-function AppleIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 814 1000" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
-      <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-57.8-155.5-127.4C46 495.2 0 367.3 0 245.8 0 107.4 91.2 34 180.5 34c76 0 127.4 50.5 168.3 50.5 39.3 0 101-53.4 186.5-53.4 29.5 0 108.2 2.6 168.3 80zm-108.5-185.2c35.5-42.1 61-100.6 61-159.1 0-8.3-.6-16.7-2-24.4-57.2 2.2-125.1 38.2-166.6 86.2-32.1 36.8-62 95.2-62 154.4 0 9 1.3 18 2 20.9 3.6.6 9.4 1.3 15.2 1.3 51.5 0 115.4-34.5 152.4-79.3z"/>
-    </svg>
-  );
-}
 
 type Mode = "password" | "magic";
 type Step = "credentials" | "mfa" | "magic-sent";
@@ -39,9 +20,8 @@ export default function LoginPage() {
   const [mfaCode,  setMfaCode]  = useState("");
   const [factorId, setFactorId] = useState("");
   const [chalId,   setChalId]   = useState("");
-  const [loading,      setLoading]      = useState(false);
-  const [oauthLoading, setOauthLoading] = useState<"google" | "apple" | null>(null);
-  const [error,        setError]        = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState("");
 
   /* ── Password login ── */
   async function handlePasswordLogin(e: React.FormEvent) {
@@ -97,20 +77,6 @@ export default function LoginPage() {
       return;
     }
     router.replace("/dashboard");
-  }
-
-  /* ── OAuth (Google / Apple) ── */
-  async function handleOAuth(provider: "google" | "apple") {
-    setOauthLoading(provider);
-    setError("");
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: `${window.location.origin}/dashboard` },
-    });
-    if (error) {
-      setError(error.message);
-      setOauthLoading(null);
-    }
   }
 
   /* ── Magic link ── */
@@ -327,39 +293,6 @@ export default function LoginPage() {
                 </form>
               )}
 
-              {/* ── OAuth divider + buttons ── */}
-              <div className="relative flex items-center gap-3 pt-1">
-                <div className="flex-1 h-px bg-[#273246]" />
-                <span className="text-[10px] text-[#94A3B8]/50 font-medium uppercase tracking-widest whitespace-nowrap">
-                  ou continue com
-                </span>
-                <div className="flex-1 h-px bg-[#273246]" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleOAuth("google")}
-                  disabled={!!oauthLoading}
-                  className="flex items-center justify-center gap-2 bg-background border border-[#273246] hover:border-[#94A3B8]/40 hover:bg-[#1E293B] disabled:opacity-50 text-white text-sm font-semibold py-3 rounded-xl transition"
-                >
-                  {oauthLoading === "google"
-                    ? <Loader2 size={16} className="animate-spin" />
-                    : <><GoogleIcon /><span>Google</span></>
-                  }
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleOAuth("apple")}
-                  disabled={!!oauthLoading}
-                  className="flex items-center justify-center gap-2 bg-background border border-[#273246] hover:border-[#94A3B8]/40 hover:bg-[#1E293B] disabled:opacity-50 text-white text-sm font-semibold py-3 rounded-xl transition"
-                >
-                  {oauthLoading === "apple"
-                    ? <Loader2 size={16} className="animate-spin" />
-                    : <><AppleIcon /><span>Apple</span></>
-                  }
-                </button>
-              </div>
             </>
           )}
         </div>
