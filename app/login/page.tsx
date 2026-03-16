@@ -6,8 +6,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { Mail, Lock, Loader2, ShieldCheck, Eye, EyeOff, KeyRound } from "lucide-react";
 
 
-type Mode = "password" | "magic";
-type Step = "credentials" | "mfa" | "magic-sent";
+type Mode = "password" | "magic" | "signup";
+type Step = "credentials" | "mfa" | "magic-sent" | "signup-sent";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -77,6 +77,35 @@ export default function LoginPage() {
       return;
     }
     router.replace("/dashboard");
+  }
+
+  /* ── Sign up ── */
+  async function handleSignUp(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    const pwStrong = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(password);
+    if (!pwStrong) {
+      setError("Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula e número.");
+      setLoading(false);
+      return;
+    }
+
+    const { error: signUpErr } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+    });
+
+    setLoading(false);
+    if (signUpErr) {
+      setError(signUpErr.message === "User already registered"
+        ? "Este e-mail já está cadastrado. Tente fazer login."
+        : signUpErr.message);
+    } else {
+      setStep("signup-sent");
+    }
   }
 
   /* ── Magic link ── */
@@ -196,23 +225,44 @@ export default function LoginPage() {
             </div>
           )}
 
+          {/* ── Signup sent step ── */}
+          {step === "signup-sent" && (
+            <div className="text-center space-y-4 py-2">
+              <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto">
+                <Mail size={24} className="text-emerald-400" />
+              </div>
+              <div>
+                <h2 className="font-heading font-bold text-lg text-white">Confirme seu cadastro</h2>
+                <p className="text-[#94A3B8] text-sm mt-2 leading-relaxed">
+                  Enviamos um e-mail de confirmação para{" "}
+                  <span className="text-white font-semibold">{email}</span>.
+                  <br />Clique no link para ativar sua conta.
+                </p>
+              </div>
+              <button onClick={() => { setStep("credentials"); setMode("password"); setEmail(""); setPassword(""); setError(""); }}
+                className="text-primary/60 text-sm hover:text-primary transition">
+                Voltar para o login
+              </button>
+            </div>
+          )}
+
           {/* ── Credentials step ── */}
           {step === "credentials" && (
             <>
               {/* Mode toggle */}
               <div className="flex bg-background rounded-xl p-1 gap-1">
-                {(["password", "magic"] as Mode[]).map(m => (
+                {([["password", "🔐 Entrar"], ["signup", "✏️ Cadastrar"], ["magic", "✨ Magic"]] as [Mode, string][]).map(([m, label]) => (
                   <button
                     key={m}
                     type="button"
                     onClick={() => { setMode(m); setError(""); }}
-                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${
+                    className={`flex-1 py-2 rounded-lg text-[10px] font-bold transition ${
                       mode === m
                         ? "bg-primary text-white shadow-lg shadow-primary/20"
                         : "text-[#94A3B8] hover:text-white"
                     }`}
                   >
-                    {m === "password" ? "🔐 Senha" : "✨ Magic Link"}
+                    {label}
                   </button>
                 ))}
               </div>
@@ -262,6 +312,69 @@ export default function LoginPage() {
 
                   <p className="text-center text-[10px] text-[#94A3B8]/50 leading-relaxed">
                     Não tem conta? Use Magic Link ou peça ao admin.
+                  </p>
+                </form>
+              )}
+
+              {/* Signup form */}
+              {mode === "signup" && (
+                <form onSubmit={handleSignUp} className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <Mail size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        placeholder="E-mail"
+                        required
+                        className="w-full bg-background border border-[#273246] rounded-xl pl-10 pr-4 py-3 text-white text-sm placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition"
+                      />
+                    </div>
+                    <div className="relative">
+                      <Lock size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
+                      <input
+                        type={showPw ? "text" : "password"}
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                        placeholder="Senha (mín. 8 chars, maiúsc., número)"
+                        required
+                        autoComplete="new-password"
+                        className="w-full bg-background border border-[#273246] rounded-xl pl-10 pr-11 py-3 text-white text-sm placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition"
+                      />
+                      <button type="button" onClick={() => setShowPw(!showPw)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-white transition">
+                        {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                    {password.length > 0 && (
+                      <div className="flex gap-1.5 flex-wrap">
+                        {[
+                          { ok: password.length >= 8, label: "8+ chars" },
+                          { ok: /[A-Z]/.test(password), label: "Maiúscula" },
+                          { ok: /[a-z]/.test(password), label: "Minúscula" },
+                          { ok: /\d/.test(password), label: "Número" },
+                        ].map(({ ok, label }) => (
+                          <span key={label} className={`text-[10px] px-2 py-0.5 rounded-full font-semibold transition ${ok ? "bg-emerald-500/20 text-emerald-400" : "bg-[#273246] text-[#94A3B8]"}`}>
+                            {ok ? "✓" : "·"} {label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {error && <p className="text-loss text-xs bg-loss/10 rounded-lg px-3 py-2">{error}</p>}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-primary hover:bg-primary-dark disabled:opacity-50 text-white font-black py-3.5 rounded-xl transition shadow-lg shadow-primary/20 text-sm"
+                  >
+                    {loading ? <Loader2 size={16} className="animate-spin mx-auto" /> : "Criar conta"}
+                  </button>
+
+                  <p className="text-center text-[10px] text-[#94A3B8]/50 leading-relaxed">
+                    Um e-mail de confirmação será enviado.
                   </p>
                 </form>
               )}

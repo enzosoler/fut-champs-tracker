@@ -129,7 +129,8 @@ export default function ProfilePage() {
   }
 
   async function changePassword() {
-    if (newPassword.length < 6) { setError('Mínimo 6 caracteres.'); return; }
+    const pwStrong = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/.test(newPassword);
+    if (!pwStrong) { setError('Senha fraca. Use ao menos 8 caracteres com maiúscula, minúscula e número.'); return; }
     if (newPassword !== confirmPw) { setError('Senhas não coincidem.'); return; }
     setPwSaving(true);
     setError('');
@@ -380,9 +381,23 @@ export default function ProfilePage() {
           {showPwForm && (
             <div className="space-y-3 pt-1">
               <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
-                placeholder="Nova senha (mín. 6 caracteres)"
+                placeholder="Nova senha"
                 className="w-full bg-background border border-[#273246] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition placeholder:text-[#94A3B8]"
               />
+              {newPassword.length > 0 && (
+                <div className="flex gap-1.5 flex-wrap">
+                  {[
+                    { ok: newPassword.length >= 8, label: '8+ chars' },
+                    { ok: /[A-Z]/.test(newPassword), label: 'Maiúscula' },
+                    { ok: /[a-z]/.test(newPassword), label: 'Minúscula' },
+                    { ok: /\d/.test(newPassword), label: 'Número' },
+                  ].map(({ ok, label }) => (
+                    <span key={label} className={`text-[10px] px-2 py-0.5 rounded-full font-semibold transition ${ok ? 'bg-emerald-500/20 text-emerald-400' : 'bg-[#273246] text-[#94A3B8]'}`}>
+                      {ok ? '✓' : '·'} {label}
+                    </span>
+                  ))}
+                </div>
+              )}
               <input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') changePassword(); }}
                 placeholder="Confirmar nova senha"
