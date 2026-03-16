@@ -87,7 +87,8 @@ export default function DashboardPage() {
     return rankIdx > bestIdx ? rank.rank : best;
   }, null as string | null);
 
-  const displayName = user?.email?.split('@')[0] ?? 'Player';
+  const displayName = user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? 'Player';
+  const avatarUrl   = user?.user_metadata?.avatar_url ?? null;
 
   const resultColor: Record<MatchResult, string> = {
     W: 'bg-win/20 border-2 border-win text-win',
@@ -130,9 +131,17 @@ export default function DashboardPage() {
               Welcome back, {displayName}
             </h1>
           </div>
-          <div className="w-10 h-10 rounded-full border-2 border-primary/30 bg-muted flex items-center justify-center ring-2 ring-background">
-            <span className="text-base font-bold text-primary">{displayName.charAt(0).toUpperCase()}</span>
-          </div>
+          <button
+            onClick={() => router.push('/profile')}
+            className="w-10 h-10 rounded-full border-2 border-primary/30 bg-muted flex items-center justify-center ring-2 ring-background overflow-hidden hover:border-primary/60 transition"
+            title="Edit profile"
+          >
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={displayName} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-base font-bold text-primary">{displayName.charAt(0).toUpperCase()}</span>
+            )}
+          </button>
         </div>
       </div>
 
