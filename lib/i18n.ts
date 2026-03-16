@@ -29,6 +29,7 @@ const translations = {
   nav_analytics:  { pt: 'Análises',   en: 'Analytics',  es: 'Análisis',   fr: 'Stats'   },
   nav_squad:      { pt: 'Elenco',     en: 'Squad',      es: 'Plantilla',  fr: 'Équipe'  },
   nav_packs:      { pt: 'Packs',      en: 'Packs',      es: 'Sobres',     fr: 'Packs'   },
+  nav_players:    { pt: 'Players',    en: 'Players',    es: 'Jugadores',  fr: 'Joueurs' },
 
   // ── General / Shared ──────────────────────────────────────────────────
   match:          { pt: 'Partida',    en: 'Match',      es: 'Partido',    fr: 'Match'   },

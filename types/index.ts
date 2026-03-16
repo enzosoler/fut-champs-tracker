@@ -146,6 +146,26 @@ export const RANK_THRESHOLDS = [
   { rank: 'Top 100',    wins: 15 },
 ];
 
+export interface Profile {
+  id: string;
+  username: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type FriendStatus = 'none' | 'pending_sent' | 'pending_received' | 'friends';
+
+export interface FriendRequest {
+  id: string;
+  from_id: string;
+  to_id: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  created_at: string;
+  updated_at: string;
+}
+
 export const PACK_TYPES = [
   'Gold Pack (básico)',
   'Gold Pack (premium)',

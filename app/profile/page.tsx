@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabaseClient';
 import {
   UserCircle, Camera, Check, Loader2, LogOut,
   Mail, KeyRound, ChevronLeft, Pencil, X,
-  ShieldCheck, ShieldOff, QrCode
+  ShieldCheck, ShieldOff, QrCode, AtSign
 } from 'lucide-react';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
@@ -22,9 +22,13 @@ export default function ProfilePage() {
   const [error,            setError]            = useState('');
 
   // Profile fields
-  const [displayName, setDisplayName] = useState('');
-  const [avatarUrl,   setAvatarUrl]   = useState('');
-  const [editingName, setEditingName] = useState(false);
+  const [displayName,     setDisplayName]     = useState('');
+  const [avatarUrl,       setAvatarUrl]       = useState('');
+  const [editingName,     setEditingName]     = useState(false);
+  const [username,        setUsername]        = useState('');
+  const [usernameInput,   setUsernameInput]   = useState('');
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [usernameSaving,  setUsernameSaving]  = useState(false);
 
   // Password change
   const [showPwForm,  setShowPwForm]  = useState(false);
@@ -48,6 +52,13 @@ export default function ProfilePage() {
       setUser(user);
       setDisplayName(user.user_metadata?.full_name ?? user.email?.split('@')[0] ?? '');
       setAvatarUrl(user.user_metadata?.avatar_url ?? '');
+      // Load profile (username)
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (profile) { setUsername(profile.username); setUsernameInput(profile.username); }
       // Load MFA factors
       const { data: factors } = await supabase.auth.mfa.listFactors();
       setMfaFactors(factors?.totp ?? []);
@@ -55,6 +66,24 @@ export default function ProfilePage() {
     }
     init();
   }, []);
+
+  async function saveUsername() {
+    const val = usernameInput.toLowerCase().trim();
+    if (!/^[a-zA-Z0-9_]{3,20}$/.test(val)) return;
+    if (val === username) { setEditingUsername(false); return; }
+    setUsernameSaving(true);
+    setError('');
+    const { data: existing } = await supabase
+      .from('profiles').select('id').eq('username', val).maybeSingle();
+    if (existing) { setError('Username já em uso.'); setUsernameSaving(false); return; }
+    const { error } = await supabase.from('profiles')
+      .update({ username: val, updated_at: new Date().toISOString() })
+      .eq('id', user!.id);
+    if (error) setError(error.message);
+    else { setUsername(val); setSuccess('Username atualizado!'); setEditingUsername(false); }
+    setUsernameSaving(false);
+    setTimeout(() => setSuccess(''), 3000);
+  }
 
   async function saveName() {
     if (!displayName.trim()) return;
@@ -236,6 +265,53 @@ export default function ProfilePage() {
           <p className="text-[10px] text-[#94A3B8] text-center leading-relaxed">
             Requer o bucket <span className="text-primary font-semibold">avatars</span> no Supabase Storage.
           </p>
+        </div>
+
+        {/* Username */}
+        <div className="bg-card border border-[#273246] rounded-2xl p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold text-[#94A3B8] uppercase tracking-widest">Username</p>
+            {!editingUsername && (
+              <button onClick={() => { setEditingUsername(true); setUsernameInput(username); }}
+                className="flex items-center gap-1 text-xs text-primary font-semibold">
+                <Pencil size={12} /> Editar
+              </button>
+            )}
+          </div>
+          {editingUsername ? (
+            <div className="space-y-3">
+              <div className="relative">
+                <AtSign size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8]" />
+                <input
+                  type="text" value={usernameInput}
+                  onChange={e => setUsernameInput(e.target.value.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase())}
+                  onKeyDown={e => { if (e.key === 'Enter') saveUsername(); if (e.key === 'Escape') setEditingUsername(false); }}
+                  autoFocus maxLength={20}
+                  className="w-full bg-background border border-primary/50 rounded-xl pl-8 pr-4 py-2.5 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-primary/50 transition"
+                />
+              </div>
+              {usernameInput.length > 0 && !/^[a-zA-Z0-9_]{3,20}$/.test(usernameInput) && (
+                <p className="text-xs text-[#94A3B8] px-1">Mínimo 3 caracteres, apenas letras/números/_</p>
+              )}
+              <div className="flex gap-2">
+                <button onClick={saveUsername} disabled={usernameSaving || !/^[a-zA-Z0-9_]{3,20}$/.test(usernameInput)}
+                  className="flex-1 bg-primary hover:bg-primary-dark text-white font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 transition disabled:opacity-50">
+                  {usernameSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />} Salvar
+                </button>
+                <button onClick={() => setEditingUsername(false)}
+                  className="px-4 py-2.5 rounded-xl border border-[#273246] text-sm text-[#94A3B8] hover:text-white transition">
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center">
+                <AtSign size={15} className="text-accent" />
+              </div>
+              <p className="font-mono font-semibold text-accent">@{username || '—'}</p>
+            </div>
+          )}
         </div>
 
         {/* Display name */}
