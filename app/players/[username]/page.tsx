@@ -98,7 +98,7 @@ export default function PlayerProfilePage() {
   }
 
   // WL stats from matches
-  const wlWeeks = [...new Set(matches.map(m => m.week_id))];
+  const wlWeeks = Array.from(new Set(matches.map(m => m.week_id)));
   const wlSessions = wlWeeks.map(wkId => {
     const wm = matches.filter(m => m.week_id === wkId);
     const wins   = wm.filter(m => getMatchResult(m) === 'W').length;
