@@ -6,14 +6,33 @@ import AuthProvider from "@/components/AuthProvider";
 import { LanguageProvider } from "@/components/LanguageProvider";
 
 export const metadata: Metadata = {
-  title: "FUT Champs Tracker · SolerWorks",
+  title: "FUT Champs Tracker",
   description: "Rastreie seus resultados no FUT Champions do FC 26",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "FC Tracker",
+    startupImage: [],
+  },
+  icons: {
+    apple: [
+      { url: "/icons/icon-180.png", sizes: "180x180" },
+      { url: "/icons/icon-152.png", sizes: "152x152" },
+      { url: "/icons/icon-167.png", sizes: "167x167" },
+    ],
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192" },
+      { url: "/icons/icon-512.png", sizes: "512x512" },
+    ],
+  },
 };
 
 export const viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  viewportFit: "cover",
   themeColor: "#0B0E14",
 };
 
